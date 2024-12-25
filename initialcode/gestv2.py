@@ -43,7 +43,7 @@ PAJ_CLOCKWISE = 0x40
 PAJ_COUNT_CLOCKWISE = 0x80
 PAJ_WAVE = 0x100
 
-# to do list for this code
+# to do list for this  code
 '''
 1. once we recieve hardware parts will be able to use this fully with windows app
 2. incorperate github for other rpi's so we can just push the code wirlessly
