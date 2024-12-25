@@ -24,10 +24,9 @@ PAJ_CLOCKWISE = 0x40
 PAJ_COUNT_CLOCKWISE = 0x80
 PAJ_WAVE = 0x100
 
-# GPIO setup
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(LED_PIN, GPIO.OUT)
-GPIO.output(LED_PIN, GPIO.LOW)
+# GPIO setup (mocked)
+print("GPIO setup mocked")
+print("LED control mocked")
 
 
 class PAJ7620U2(object):
@@ -104,9 +103,9 @@ def enter_pairing_mode():
     # Start LED blinking
     def blink_led():
         while not connected:
-            GPIO.output(LED_PIN, GPIO.HIGH)
+            print("LED ON")
             time.sleep(0.5)
-            GPIO.output(LED_PIN, GPIO.LOW)
+            print("LED OFF")
             time.sleep(0.5)
 
     connected = False
@@ -117,7 +116,7 @@ def enter_pairing_mode():
     try:
         client_sock, client_info = server_sock.accept()
         connected = True
-        GPIO.output(LED_PIN, GPIO.HIGH)  # Solid LED when connected
+        print("LED SOLID")  # Solid LED when connected
         print(f"Accepted connection from {client_info}")
 
         # Handle incoming data
@@ -133,7 +132,7 @@ def enter_pairing_mode():
         blink_thread.join()
         client_sock.close()
         server_sock.close()
-        GPIO.output(LED_PIN, GPIO.LOW)  # Turn off LED
+        print("LED OFF")  # Turn off LED
         print("Bluetooth Pairing Mode Exited")
 
 
@@ -188,4 +187,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print("Exiting program...")
     finally:
-        GPIO.cleanup()
+        print("GPIO cleanup mocked")
