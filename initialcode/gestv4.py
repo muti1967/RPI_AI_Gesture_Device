@@ -329,6 +329,7 @@ if __name__ == '__main__':
     current_task = 1
 
     try:
+        enter_default_state()
         while True:
             button_pressed = input(
                 "Enter button press (1 for Default State, 2 for Editing State, hold for Pairing Mode): ")
