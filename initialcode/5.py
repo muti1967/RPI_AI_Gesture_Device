@@ -265,16 +265,25 @@ async def enter_pairing_mode():
     blink_thread.start()
 
     try:
-        # Simulate connection
-        await asyncio.sleep(5)
-        connected = True
+        # Wait for a connection from a phone
+        print("Waiting for a connection from a phone...")
+        while not connected:
+            await asyncio.sleep(1)
+            # Check for a specific device or connection status here
+            # For example, you can check if a specific device is in the discovered devices list
+            for device in devices:
+                if "YourPhoneName" in device.name:
+                    connected = True
+                    print(f"Connected to {device.name}")
+                    break
+
         print("LED SOLID")  # Solid LED when connected
-        print("Simulated connection established")
 
         # Handle incoming data
-        while True:
+        while connected:
             await asyncio.sleep(1)
-            print("Simulated data handling")
+            print("Handling data from the phone...")
+            # Implement actual data handling logic here
     except Exception as e:
         print(f"Connection error: {e}")
     finally:
