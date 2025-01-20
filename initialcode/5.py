@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 import time
 import smbus
-import bluetooth
+from bleak import BleakScanner
 import RPi.GPIO as GPIO
 
 # i2c address
