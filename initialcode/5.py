@@ -185,6 +185,7 @@ Init_Gesture_Array = (
 
 # GPIO setup (mocked)
 GPIO.setmode(GPIO.BCM)
+GPIO.cleanup()  # Add this line to release any previously claimed GPIO pins
 GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 print("GPIO setup complete")
 print("LED control mocked")
