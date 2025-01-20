@@ -183,13 +183,11 @@ Init_Gesture_Array = (
     (0x42, 0x01),
 )
 
-# GPIO setup (mocked)
-GPIO.setmode(GPIO.BCM)  # Set the pin numbering mode
-GPIO.cleanup()  # Add this line to release any previously claimed GPIO pins
-GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+# GPIO setup
+GPIO.setmode(GPIO.BCM)  # Set the pin numbering mode to BCM
+GPIO.cleanup()  # Ensure any previous setups are cleared
+GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Configure GPIO17 as input with pull-up resistor
 print("GPIO setup complete")
-print("LED control mocked")
-
 
 class PAJ7620U2(object):
     def __init__(self, address=PAJ7620U2_I2C_ADDRESS):
