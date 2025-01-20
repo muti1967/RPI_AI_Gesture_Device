@@ -200,18 +200,21 @@ finally:
 
 class PAJ7620U2(object):
     def __init__(self, address=PAJ7620U2_I2C_ADDRESS):
-        self._addçress = address
-        self._bus = smbus.SMBus(1)
-        time.sleep(0.5)
-        self._initialize_sensor()
+        self._address = address  # Set the I2C address
+        self._bus = smbus.SMBus(1)  # Initialize I2C bus
+        time.sleep(0.5)  # Wait for the device to power up
+        self._initialize_sensor()  # Initialize the sensor
 
     def _initialize_sensor(self):
-        if self._read_byte(0x00) == 0x20:
-            print("\nGesture Sensor READY\n")
-            for num in range(len(Init_Gesture_Array)):
-                self._write_byte(Init_Gesture_Array[num][0], Init_Gesture_Array[num][1])
-        else:
-            print("\nGesture Sensor NOT READY - check pin connections\n")
+        try:
+            if self._read_byte(0x00) == 0x20:
+                print("\nGesture Sensor READY\n")
+                for num in range(len(Init_Gesture_Array)):
+                    self._write_byte(Init_Gesture_Array[num][0], Init_Gesture_Array[num][1])
+            else:
+                print("\nGesture Sensor NOT READY - check pin connections\n")
+        except Exception as e:
+            print(f"Error initializing sensor: {e}")
 
     def _read_byte(self, cmd):
         return self._bus.read_byte_data(self._address, cmd)
