@@ -184,14 +184,23 @@ Init_Gesture_Array = (
 )
 
 # GPIO setup
-GPIO.setmode(GPIO.BCM)  # Set the pin numbering mode to BCM
-GPIO.cleanup()  # Ensure any previous setups are cleared
-GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Configure GPIO17 as input with pull-up resistor
-print("GPIO setup complete")
+try:
+    # Set GPIO mode
+    print("Setting GPIO mode to BCM")
+    GPIO.setmode(GPIO.BCM)
+
+    # Set up GPIO17 as input with pull-up resistor
+    print("Setting up GPIO17 as input with pull-up resistor")
+    GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    print("GPIO setup complete")
+except Exception as e:
+    print(f"Error during GPIO setup: {e}")
+finally:
+    print("GPIO cleanup will happen at program exit")
 
 class PAJ7620U2(object):
     def __init__(self, address=PAJ7620U2_I2C_ADDRESS):
-        self._address = address
+        self._addçress = address
         self._bus = smbus.SMBus(1)
         time.sleep(0.5)
         self._initialize_sensor()
