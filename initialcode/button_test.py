@@ -1,5 +1,6 @@
 import RPi.GPIO as GPIO
 import time
+GPIO.cleanup()
 
 BUTTON_GPIO = 17
 
