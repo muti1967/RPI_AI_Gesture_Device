@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 import time
 import smbus
-from bleak import BleakScanner
+from bleak import BleakScanner, BleakAdvertiser
 import RPi.GPIO as GPIO
 
 # i2c address
@@ -184,7 +184,9 @@ Init_Gesture_Array = (
 )
 
 # GPIO setup (mocked)
-print("GPIO setup mocked")
+GPIO.setmode(GPIO.BOARD)
+GPIO.setup(11, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+print("GPIO setup complete")
 print("LED control mocked")
 
 
@@ -245,11 +247,12 @@ class PAJ7620U2(object):
 # Bluetooth pairing
 async def enter_pairing_mode():
     print("Entering Bluetooth Pairing Mode")
-    devices = await BleakScanner.discover()
 
-    print("Devices discovered:")
-    for device in devices:
-        print(device)
+    # Start advertising
+    advertiser = BleakAdvertiser()
+    await advertiser.start()
+
+    print("Device is now discoverable")
 
     # Start LED blinking
     def blink_led():
@@ -269,8 +272,8 @@ async def enter_pairing_mode():
         print("Waiting for a connection from a phone...")
         while not connected:
             await asyncio.sleep(1)
+            devices = await BleakScanner.discover()
             # Check for a specific device or connection status here
-            # For example, you can check if a specific device is in the discovered devices list
             for device in devices:
                 if "YourPhoneName" in device.name:
                     connected = True
@@ -288,10 +291,25 @@ async def enter_pairing_mode():
         print(f"Connection error: {e}")
     finally:
         connected = True
+        await advertiser.stop()
         blink_thread.join()
         print("LED OFF")  # Turn off LED
         print("Bluetooth Pairing Mode Exited")
 
+# Check button press
+def check_button_press():
+    button_pressed_time = 0
+    while True:
+        if GPIO.input(11) == GPIO.LOW:
+            button_pressed_time += 1
+            if button_pressed_time >= 3:
+                print("Button held for 3 seconds, entering pairing mode...")
+                import asyncio
+                asyncio.run(enter_pairing_mode())
+                break
+        else:
+            button_pressed_time = 0
+        time.sleep(1)
 
 # Task states
 def enter_default_state():
@@ -343,7 +361,11 @@ if __name__ == '__main__':
                 asyncio.run(enter_pairing_mode())
             else:
                 print("Invalid input, please try again.")
+            
+            # Check for button press to enter pairing mode
+            check_button_press()
     except KeyboardInterrupt:
         print("Exiting program...")
     finally:
         print("GPIO cleanup mocked")
+        GPIO.cleanup()
