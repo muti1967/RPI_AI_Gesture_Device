@@ -1,6 +1,6 @@
 import RPi.GPIO as GPIO
 import time
-
+GPIO.cleanup()
 # GPIO settings
 BUTTON_GPIO = 17  # BUTTON is connected to GPIO17 (BCM)
 
