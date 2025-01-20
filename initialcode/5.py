@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 import time
 import smbus
-from bleak import BleakScanner, BleakAdvertiser
+from bleak import BleakScanner
 import RPi.GPIO as GPIO
 
 # i2c address
@@ -248,12 +248,6 @@ class PAJ7620U2(object):
 async def enter_pairing_mode():
     print("Entering Bluetooth Pairing Mode")
 
-    # Start advertising
-    advertiser = BleakAdvertiser()
-    await advertiser.start()
-
-    print("Device is now discoverable")
-
     # Start LED blinking
     def blink_led():
         while not connected:
@@ -291,7 +285,6 @@ async def enter_pairing_mode():
         print(f"Connection error: {e}")
     finally:
         connected = True
-        await advertiser.stop()
         blink_thread.join()
         print("LED OFF")  # Turn off LED
         print("Bluetooth Pairing Mode Exited")
