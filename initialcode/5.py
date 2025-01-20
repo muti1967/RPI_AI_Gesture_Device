@@ -185,7 +185,7 @@ Init_Gesture_Array = (
 
 # GPIO setup (mocked)
 GPIO.setmode(GPIO.BOARD)
-GPIO.setup(11, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 print("GPIO setup complete")
 print("LED control mocked")
 
@@ -293,7 +293,7 @@ async def enter_pairing_mode():
 def check_button_press():
     button_pressed_time = 0
     while True:
-        if GPIO.input(11) == GPIO.LOW:
+        if GPIO.input(17) == GPIO.LOW:
             button_pressed_time += 1
             if button_pressed_time >= 3:
                 print("Button held for 3 seconds, entering pairing mode...")
