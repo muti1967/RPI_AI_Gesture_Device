@@ -243,21 +243,13 @@ class PAJ7620U2(object):
 
 
 # Bluetooth pairing
-def enter_pairing_mode():
+async def enter_pairing_mode():
     print("Entering Bluetooth Pairing Mode")
-    server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-    server_sock.bind(("", bluetooth.PORT_ANY))
-    server_sock.listen(1)
-    port = server_sock.getsockname()[1]
+    devices = await BleakScanner.discover()
 
-    bluetooth.advertise_service(
-        server_sock,
-        "GestureDevice",
-        service_classes=[bluetooth.SERIAL_PORT_CLASS],
-        profiles=[bluetooth.SERIAL_PORT_PROFILE],
-    )
-
-    print(f"Device is discoverable. Waiting for a connection on RFCOMM channel {port}")
+    print("Devices discovered:")
+    for device in devices:
+        print(device)
 
     # Start LED blinking
     def blink_led():
@@ -273,24 +265,21 @@ def enter_pairing_mode():
     blink_thread.start()
 
     try:
-        client_sock, client_info = server_sock.accept()
+        # Simulate connection
+        await asyncio.sleep(5)
         connected = True
         print("LED SOLID")  # Solid LED when connected
-        print(f"Accepted connection from {client_info}")
+        print("Simulated connection established")
 
         # Handle incoming data
         while True:
-            data = client_sock.recv(1024)
-            if not data:
-                break
-            print(f"Received: {data.decode('utf-8')}")
+            await asyncio.sleep(1)
+            print("Simulated data handling")
     except Exception as e:
         print(f"Connection error: {e}")
     finally:
         connected = True
         blink_thread.join()
-        client_sock.close()
-        server_sock.close()
         print("LED OFF")  # Turn off LED
         print("Bluetooth Pairing Mode Exited")
 
@@ -341,7 +330,8 @@ if __name__ == '__main__':
             elif user_input == "2":
                 enter_editing_state()
             elif user_input == "3":
-                enter_pairing_mode()
+                import asyncio
+                asyncio.run(enter_pairing_mode())
             else:
                 print("Invalid input, please try again.")
     except KeyboardInterrupt:
