@@ -302,18 +302,24 @@ async def enter_pairing_mode():
 
 # Check button press
 def check_button_press():
-    button_pressed_time = 0
+    button_press_count = 0
+    start_time = time.time()
+    
     while True:
         if GPIO.input(17) == GPIO.LOW:
-            button_pressed_time += 1
-            if button_pressed_time >= 3:
-                print("Button held for 3 seconds, entering pairing mode...")
+            button_press_count += 1
+            print(f"Button pressed {button_press_count} time(s)")
+            time.sleep(0.5)  # Debounce delay
+            
+            if button_press_count >= 3 and (time.time() - start_time) <= 5:
+                print("Button pressed 3 times within 5 seconds, entering pairing mode...")
                 import asyncio
                 asyncio.run(enter_pairing_mode())
                 break
-        else:
-            button_pressed_time = 0
-        time.sleep(1)
+            elif (time.time() - start_time) > 5:
+                button_press_count = 0
+                start_time = time.time()
+        time.sleep(0.1)
 
 # Task states
 def enter_default_state():
