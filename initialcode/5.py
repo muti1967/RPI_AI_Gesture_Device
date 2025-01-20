@@ -339,25 +339,24 @@ if __name__ == '__main__':
     current_task = 1
 
     try:
-        while True:
-            print("Enter:")
-            print("1 - Default State")
-            print("2 - Editing State")
-            print("3 - Bluetooth Pairing Mode")
-            user_input = input("Your choice: ")
+        print("Enter:")
+        print("1 - Default State")
+        print("2 - Editing State")
+        print("3 - Bluetooth Pairing Mode")
+        user_input = input("Your choice: ")
 
-            if user_input == "1":
-                enter_default_state()
-            elif user_input == "2":
-                enter_editing_state()
-            elif user_input == "3":
-                import asyncio
-                asyncio.run(enter_pairing_mode())
-            else:
-                print("Invalid input, please try again.")
-            
-            # Check for button press to enter pairing mode
-            check_button_press()
+        if user_input == "1":
+            enter_default_state()
+        elif user_input == "2":
+            enter_editing_state()
+        elif user_input == "3":
+            import asyncio
+            asyncio.run(enter_pairing_mode())
+        else:
+            print("Invalid input, please try again.")
+        
+        # Check for button press to enter pairing mode
+        check_button_press()
     except KeyboardInterrupt:
         print("Exiting program...")
     finally:
