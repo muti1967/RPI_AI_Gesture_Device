@@ -1,26 +1,27 @@
 import RPi.GPIO as GPIO
 import time
 
-# Clean up any previous setups
-
 # Set up GPIO mode
 GPIO.setmode(GPIO.BCM)
-BUTTON_PIN = 17
+
+# Define the GPIO pin connected to the button
+BUTTON_PIN = 17  # Replace with the correct GPIO pin number if different
 
 # Set up the button pin as input with an internal pull-up resistor
 GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-def button_callback(channel):
-    print("Button pressed!")
-
-# Add an event detection on the button pin
-GPIO.add_event_detect(BUTTON_PIN, GPIO.FALLING, callback=button_callback, bouncetime=200)
+print("Testing button. Press Ctrl+C to exit.")
 
 try:
-    print("Press the button to test...")
     while True:
-        time.sleep(1)  # Keep the script running
+        # Read the button state
+        button_state = GPIO.input(BUTTON_PIN)
+        if button_state == GPIO.LOW:  # Button pressed (LOW because of pull-up)
+            print("Button pressed!")
+        else:  # Button not pressed
+            print("Button not pressed")
+        time.sleep(0.1)  # Delay to avoid flooding the terminal
 except KeyboardInterrupt:
-    print("Exiting program")
+    print("\nExiting test.")
 finally:
-    GPIO.cleanup()  # Clean up GPIO on exit
+    GPIO.cleanup()  # Clean up GPIO settings
