@@ -3,7 +3,7 @@ import time
 
 # Set up GPIO mode
 GPIO.setmode(GPIO.BCM)
-BUTTON_PIN = 17
+BUTTON_PIN = 11
 
 # Set up the button pin as input with an internal pull-up resistor
 GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
