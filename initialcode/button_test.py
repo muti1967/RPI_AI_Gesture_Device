@@ -2,7 +2,6 @@ import RPi.GPIO as GPIO
 import time
 
 # Clean up any previous setups
-GPIO.cleanup()
 
 # Set up GPIO mode
 GPIO.setmode(GPIO.BCM)
