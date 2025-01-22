@@ -320,6 +320,7 @@ def remove_paired_devices():
 # Bluetooth pairing
 async def enter_pairing_mode():
     print("Entering Bluetooth Pairing Mode")
+    remove_paired_devices()
 
     # Start LED blinking
     def blink_led():
