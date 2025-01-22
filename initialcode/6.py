@@ -308,8 +308,8 @@ def start_bluetooth_agent():
     except dbus.exceptions.DBusException as e:
         print(f"Agent not registered previously: {e}")
     
-    # Register the new agent
-    manager.RegisterAgent("/test/agent", "NoInputNoOutput")
+    # Register the new agent with DisplayYesNo mode
+    manager.RegisterAgent("/test/agent", "DisplayYesNo")
     manager.RequestDefaultAgent("/test/agent")
     print("Bluetooth agent started for pairing")
 
