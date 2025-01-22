@@ -301,9 +301,21 @@ def start_bluetooth_agent():
     agent = BluetoothAgent(bus, "/test/agent")
     obj = bus.get_object("org.bluez", "/org/bluez")
     manager = dbus.Interface(obj, "org.bluez.AgentManager1")
+    
+    # Unregister any existing agents
+    try:
+        manager.UnregisterAgent("/test/agent")
+    except dbus.exceptions.DBusException as e:
+        print(f"Agent not registered previously: {e}")
+    
+    # Register the new agent
     manager.RegisterAgent("/test/agent", "NoInputNoOutput")
     manager.RequestDefaultAgent("/test/agent")
     print("Bluetooth agent started for pairing")
+
+def remove_paired_devices():
+    os.system("bluetoothctl -- remove *")
+    print("Cleared all previously paired devices.")
 
 # Bluetooth pairing
 async def enter_pairing_mode():
@@ -449,6 +461,7 @@ if __name__ == '__main__':
     current_task = 1
 
     try:
+        remove_paired_devices()
         start_bluetooth_agent()
         enter_default_state()
     except KeyboardInterrupt:
