@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 import time
 import smbus
-from bleak import BleakScanner
+from bleak import BleakScanner, BleakClient
 import RPi.GPIO as GPIO
 
 # i2c address
@@ -281,9 +281,11 @@ async def enter_pairing_mode():
             # Check for a specific device or connection status here
             for device in devices:
                 if "YourPhoneName" in device.name:
-                    connected = True
-                    print(f"Connected to {device.name}")
-                    break
+                    async with BleakClient(device.address) as client:
+                        if client.is_connected:
+                            connected = True
+                            print(f"Connected to {device.name}")
+                            break
 
         print("LED SOLID")  # Solid LED when connected
 
@@ -345,7 +347,36 @@ def enter_default_state():
             print("Replaying last task")
         elif gesture == PAJ_WAVE:
             print("Playing calming audio")
-        check_button_press()
+        
+        # Check button press in a non-blocking manner
+        if GPIO.input(17) == GPIO.LOW:
+            button_press_count = 0
+            button_pressed_time = 0
+            start_time = time.time()
+            while GPIO.input(17) == GPIO.LOW:
+                button_pressed_time += 1
+                print(f"Button held for {button_pressed_time * 0.1} seconds")
+                time.sleep(0.1)  # Debounce delay
+                
+                if button_pressed_time >= 30:  # 3 seconds
+                    print("Button held for 3 seconds, entering pairing mode...")
+                    import asyncio
+                    asyncio.run(enter_pairing_mode())
+                    return
+            if button_pressed_time > 0:
+                button_press_count += 1
+                print(f"Button pressed {button_press_count} time(s)")
+                button_pressed_time = 0
+                time.sleep(0.1)  # Debounce delay
+
+            if button_press_count >= 2 and (time.time() - start_time) <= 3:
+                print("Button pressed 2 times within 3 seconds, entering editing mode...")
+                enter_editing_state()
+                return
+            elif (time.time() - start_time) > 3:
+                button_press_count = 0
+                start_time = time.time()
+        time.sleep(0.1)
 
 def enter_editing_state():
     print("Entering Editing State")
