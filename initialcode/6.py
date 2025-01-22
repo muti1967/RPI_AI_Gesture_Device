@@ -281,12 +281,12 @@ class BluetoothAgent(dbus.service.Object):
     def DisplayPasskey(self, device, passkey, entered):
         print(f"DisplayPasskey {device} {passkey} {entered}")
 
-    @dbus.service.method("org.bluez.Agent1", in_signature="os", out_signature="")
+    @dbus.service.method("org.bluez.Agent1", in_signature="ou", out_signature="")
     def RequestConfirmation(self, device, passkey):
         print(f"RequestConfirmation {device} {passkey}")
         return
 
-    @dbus.service.method("org.bluez.Agent1", in_signature="o", out_signature="")
+    @dbus.service.method("org.bluez.Agent1", in_signature="os", out_signature="")
     def AuthorizeService(self, device, uuid):
         print(f"AuthorizeService {device} {uuid}")
         return
