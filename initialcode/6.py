@@ -276,12 +276,12 @@ async def enter_pairing_mode():
         # Wait for a connection from a phone
         print("Waiting for a connection from a phone...")
         while not connected:
-            await asyncio.sleep(1)
             devices = await BleakScanner.discover()
             # Check for a specific device or connection status here
             for device in devices:
                 if "YourPhoneName" in device.name:
                     async with BleakClient(device.address) as client:
+                        await client.connect()
                         if client.is_connected:
                             connected = True
                             print(f"Connected to {device.name}")
