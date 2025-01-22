@@ -302,7 +302,9 @@ async def enter_pairing_mode():
 
 # Check button press
 def check_button_press():
+    button_press_count = 0
     button_pressed_time = 0
+    start_time = time.time()
     
     while True:
         if GPIO.input(17) == GPIO.LOW:
@@ -316,7 +318,19 @@ def check_button_press():
                 asyncio.run(enter_pairing_mode())
                 break
         else:
-            button_pressed_time = 0
+            if button_pressed_time > 0:
+                button_press_count += 1
+                print(f"Button pressed {button_press_count} time(s)")
+                button_pressed_time = 0
+                time.sleep(0.1)  # Debounce delay
+
+            if button_press_count >= 2 and (time.time() - start_time) <= 3:
+                print("Button pressed 2 times within 3 seconds, entering editing mode...")
+                enter_editing_state()
+                break
+            elif (time.time() - start_time) > 3:
+                button_press_count = 0
+                start_time = time.time()
         time.sleep(0.1)
 
 # Task states
@@ -331,7 +345,7 @@ def enter_default_state():
             print("Replaying last task")
         elif gesture == PAJ_WAVE:
             print("Playing calming audio")
-
+        check_button_press()
 
 def enter_editing_state():
     print("Entering Editing State")
@@ -345,7 +359,7 @@ def enter_editing_state():
             print("Playing current task")
         elif gesture == PAJ_DOWN:
             print("Resetting audio for current task")
-
+        check_button_press()
 
 if __name__ == '__main__':
     print("\nGesture Sensor Test Program ...")
@@ -353,24 +367,7 @@ if __name__ == '__main__':
     current_task = 1
 
     try:
-        print("Enter:")
-        print("1 - Default State")
-        print("2 - Editing State")
-        print("3 - Bluetooth Pairing Mode")
-        user_input = input("Your choice: ")
-
-        if user_input == "1":
-            enter_default_state()
-        elif user_input == "2":
-            enter_editing_state()
-        elif user_input == "3":
-            import asyncio
-            asyncio.run(enter_pairing_mode())
-        else:
-            print("Invalid input, please try again.")
-        
-        # Check for button press to enter pairing mode
-        check_button_press()
+        enter_default_state()
     except KeyboardInterrupt:
         print("Exiting program...")
     finally:
