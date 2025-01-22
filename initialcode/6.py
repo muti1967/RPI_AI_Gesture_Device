@@ -279,6 +279,7 @@ async def enter_pairing_mode():
             devices = await BleakScanner.discover()
             # Check for a specific device or connection status here
             for device in devices:
+                print(device)  # Print discovered devices
                 if "YourPhoneName" in device.name:
                     async with BleakClient(device.address) as client:
                         await client.connect()
@@ -404,3 +405,7 @@ if __name__ == '__main__':
     finally:
         print("GPIO cleanup mocked")
         GPIO.cleanup()
+
+    # For testing Bluetooth scanning
+    import asyncio
+    asyncio.run(scan())
