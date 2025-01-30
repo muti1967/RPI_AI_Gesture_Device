@@ -489,5 +489,5 @@ if __name__ == '__main__':
         GPIO.cleanup()
 
     # For testing Bluetooth scanning
-    import asyncio
-    asyncio.run(scan())
+    # import asyncio
+    # asyncio.run(scan())
