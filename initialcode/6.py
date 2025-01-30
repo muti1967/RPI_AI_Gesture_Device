@@ -8,6 +8,7 @@ import os
 import dbus
 import dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
+import subprocess
 
 # i2c address
 PAJ7620U2_I2C_ADDRESS = 0x73
@@ -229,12 +230,14 @@ class PAJ7620U2(object):
     def check_gesture(self):
         global current_task
         Gesture_Data = self._read_u16(0x43)
-        print(f"Gesture Data: {Gesture_Data}")  # Debug statement
+        if Gesture_Data != 0:
+            print(f"Gesture Data: {Gesture_Data}")  # Print only if motion is detected
 
         if Gesture_Data == PAJ_UP:
             print(f"Playing task[{current_task}]")
         elif Gesture_Data == PAJ_DOWN:
             print(f"Playing recent task[{current_task}]")
+            self.play_audio("audio_test.mp3")
         elif Gesture_Data == PAJ_LEFT:
             current_task = max(1, current_task - 1)
             print(f"Moving to task[{current_task}]")
@@ -251,6 +254,7 @@ class PAJ7620U2(object):
             print(f"Undo last action")
         elif Gesture_Data == PAJ_WAVE:
             print("Wave gesture detected: Playing calming audio")
+            self.play_audio("audio_test.mp3")
 
         return Gesture_Data
 
@@ -259,6 +263,11 @@ class PAJ7620U2(object):
         MSB = self._bus.read_byte_data(self._address, cmd + 1)
         return (MSB << 8) + LSB
 
+    def play_audio(self, file_path):
+        try:
+            subprocess.run(["mpg123", file_path], check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Error playing audio: {e}")
 
 class BluetoothAgent(dbus.service.Object):
     def __init__(self, bus, path):
@@ -412,6 +421,7 @@ def enter_default_state():
             print("Replaying last task")
         elif gesture == PAJ_WAVE:
             print("Playing calming audio")
+            sensor.play_audio("audio_test.mp3")
         
         # Check button press in a non-blocking manner
         if GPIO.input(17) == GPIO.LOW:
