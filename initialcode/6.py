@@ -235,6 +235,7 @@ class PAJ7620U2(object):
 
         if Gesture_Data == PAJ_UP:
             print(f"Playing task[{current_task}]")
+            self.play_audio("/home/senior/RPI_AI_Gesture_Device/audio_test.mp3")
         elif Gesture_Data == PAJ_DOWN:
             print(f"Playing recent task[{current_task}]")
             self.play_audio("/home/senior/RPI_AI_Gesture_Device/audio_test.mp3")
@@ -250,6 +251,7 @@ class PAJ7620U2(object):
             print(f"Going back in task list")
         elif Gesture_Data == PAJ_CLOCKWISE:
             print(f"Replaying task[{current_task}]")
+            self.play_audio("/home/senior/RPI_AI_Gesture_Device/audio_test.mp3")
         elif Gesture_Data == PAJ_COUNT_CLOCKWISE:
             print(f"Undo last action")
         elif Gesture_Data == PAJ_WAVE:
@@ -419,6 +421,7 @@ def enter_default_state():
             break
         elif gesture == PAJ_CLOCKWISE:
             print("Replaying last task")
+            sensor.play_audio("/home/senior/RPI_AI_Gesture_Device/audio_test.mp3")
         elif gesture == PAJ_WAVE:
             print("Playing calming audio")
             sensor.play_audio("/home/senior/RPI_AI_Gesture_Device/audio_test.mp3")
