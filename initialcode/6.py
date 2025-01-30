@@ -467,6 +467,12 @@ def enter_editing_state():
             print("Resetting audio for current task")
         check_button_press()
 
+async def scan():
+    print("Scanning for Bluetooth devices...")
+    devices = await BleakScanner.discover()
+    for device in devices:
+        print(device)
+
 if __name__ == '__main__':
     print("\nGesture Sensor Test Program ...")
     sensor = PAJ7620U2()
