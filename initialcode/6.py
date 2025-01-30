@@ -229,6 +229,7 @@ class PAJ7620U2(object):
     def check_gesture(self):
         global current_task
         Gesture_Data = self._read_u16(0x43)
+        print(f"Gesture Data: {Gesture_Data}")  # Debug statement
 
         if Gesture_Data == PAJ_UP:
             print(f"Playing task[{current_task}]")
