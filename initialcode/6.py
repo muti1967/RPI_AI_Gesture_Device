@@ -237,7 +237,7 @@ class PAJ7620U2(object):
             print(f"Playing task[{current_task}]")
         elif Gesture_Data == PAJ_DOWN:
             print(f"Playing recent task[{current_task}]")
-            self.play_audio("audio_test.mp3")
+            self.play_audio("/home/senior/RPI_AI_Gesture_Device/audio_test.mp3")
         elif Gesture_Data == PAJ_LEFT:
             current_task = max(1, current_task - 1)
             print(f"Moving to task[{current_task}]")
@@ -254,7 +254,7 @@ class PAJ7620U2(object):
             print(f"Undo last action")
         elif Gesture_Data == PAJ_WAVE:
             print("Wave gesture detected: Playing calming audio")
-            self.play_audio("audio_test.mp3")
+            self.play_audio("/home/senior/RPI_AI_Gesture_Device/audio_test.mp3")
 
         return Gesture_Data
 
@@ -421,7 +421,7 @@ def enter_default_state():
             print("Replaying last task")
         elif gesture == PAJ_WAVE:
             print("Playing calming audio")
-            sensor.play_audio("audio_test.mp3")
+            sensor.play_audio("/home/senior/RPI_AI_Gesture_Device/audio_test.mp3")
         
         # Check button press in a non-blocking manner
         if GPIO.input(17) == GPIO.LOW:
