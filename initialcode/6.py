@@ -233,7 +233,7 @@ class PAJ7620U2(object):
         if Gesture_Data == PAJ_UP:
             print(f"Playing task[{current_task}]")
         elif Gesture_Data == PAJ_DOWN:
-            print(f"Stopping task[{current_task}]")
+            print(f"Playing recent task[{current_task}]")
         elif Gesture_Data == PAJ_LEFT:
             current_task = max(1, current_task - 1)
             print(f"Moving to task[{current_task}]")
