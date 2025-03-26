@@ -218,8 +218,10 @@ finally:
     print("GPIO cleanup will happen at program exit")
 
 # Define paths
-INFO_FILE_PATH = "finalv/info/info.txt"
-AUDIO_FILES_DIR = "finalv/audio_files"
+HOME_DIR = os.path.expanduser("~")
+BASE_DIR = os.path.join(HOME_DIR, "RPI_AI_Gesture_Device")
+INFO_FILE_PATH = os.path.join(BASE_DIR, "finalv/info/info.txt")
+AUDIO_FILES_DIR = os.path.join(BASE_DIR, "finalv/audio_files")
 
 class Task:
     def __init__(self, task_number, audio_file, play_time):
@@ -279,13 +281,14 @@ def play_scheduled_audio(task):
                 print(f"Error: Audio file not found: {task.audio_file}")
                 return
                 
-            # Try to play the audio file
-            result = subprocess.run(["aplay", task.audio_file], 
+            # Try to play the audio file using ffplay
+            print("Playing audio with ffplay...")
+            result = subprocess.run(["ffplay", "-nodisp", "-autoexit", task.audio_file], 
                                  capture_output=True, 
                                  text=True)
             
             if result.returncode != 0:
-                print(f"Error playing audio: {result.stderr}")
+                print(f"Error playing audio with ffplay: {result.stderr}")
                 # Try alternative playback method
                 print("Trying alternative playback method...")
                 subprocess.run(["mpg123", "-q", task.audio_file], 
@@ -294,7 +297,7 @@ def play_scheduled_audio(task):
             print(f"Error playing audio: {e}")
             print("Please check if:")
             print("1. The audio file exists and is accessible")
-            print("2. The audio file format is supported (WAV for aplay, MP3 for mpg123)")
+            print("2. ffplay is installed (sudo apt-get install ffmpeg)")
             print("3. The audio system is properly configured")
 
 def schedule_tasks(tasks):
@@ -396,13 +399,14 @@ class PAJ7620U2(object):
                 print(f"Error: Audio file not found: {file_path}")
                 return
                 
-            # Try to play the audio file
-            result = subprocess.run(["aplay", file_path], 
+            # Try to play the audio file using ffplay
+            print("Playing audio with ffplay...")
+            result = subprocess.run(["ffplay", "-nodisp", "-autoexit", file_path], 
                                  capture_output=True, 
                                  text=True)
             
             if result.returncode != 0:
-                print(f"Error playing audio: {result.stderr}")
+                print(f"Error playing audio with ffplay: {result.stderr}")
                 # Try alternative playback method
                 print("Trying alternative playback method...")
                 subprocess.run(["mpg123", "-q", file_path], 
@@ -411,7 +415,7 @@ class PAJ7620U2(object):
             print(f"Error playing audio: {e}")
             print("Please check if:")
             print("1. The audio file exists and is accessible")
-            print("2. The audio file format is supported (WAV for aplay, MP3 for mpg123)")
+            print("2. ffplay is installed (sudo apt-get install ffmpeg)")
             print("3. The audio system is properly configured")
 
 class BluetoothAgent(dbus.service.Object):
