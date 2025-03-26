@@ -281,18 +281,21 @@ def play_scheduled_audio(task):
                 print(f"Error: Audio file not found: {task.audio_file}")
                 return
                 
-            # Try to play the audio file using ffplay
-            print("Playing audio with ffplay...")
+            # Get file extension
+            file_ext = os.path.splitext(task.audio_file)[1].lower()
+            
+            # Play the audio file using ffplay
+            print(f"Playing audio with ffplay... ({file_ext})")
             result = subprocess.run(["ffplay", "-nodisp", "-autoexit", task.audio_file], 
                                  capture_output=True, 
                                  text=True)
             
             if result.returncode != 0:
                 print(f"Error playing audio with ffplay: {result.stderr}")
-                # Try alternative playback method
-                print("Trying alternative playback method...")
-                subprocess.run(["mpg123", "-q", task.audio_file], 
-                             capture_output=True)
+                print("Please check if:")
+                print("1. ffplay is installed (sudo apt-get install ffmpeg)")
+                print("2. The audio system is properly configured")
+                print("3. The file format is supported")
         except Exception as e:
             print(f"Error playing audio: {e}")
             print("Please check if:")
@@ -399,18 +402,21 @@ class PAJ7620U2(object):
                 print(f"Error: Audio file not found: {file_path}")
                 return
                 
-            # Try to play the audio file using ffplay
-            print("Playing audio with ffplay...")
+            # Get file extension
+            file_ext = os.path.splitext(file_path)[1].lower()
+            
+            # Play the audio file using ffplay
+            print(f"Playing audio with ffplay... ({file_ext})")
             result = subprocess.run(["ffplay", "-nodisp", "-autoexit", file_path], 
                                  capture_output=True, 
                                  text=True)
             
             if result.returncode != 0:
                 print(f"Error playing audio with ffplay: {result.stderr}")
-                # Try alternative playback method
-                print("Trying alternative playback method...")
-                subprocess.run(["mpg123", "-q", file_path], 
-                             capture_output=True)
+                print("Please check if:")
+                print("1. ffplay is installed (sudo apt-get install ffmpeg)")
+                print("2. The audio system is properly configured")
+                print("3. The file format is supported")
         except Exception as e:
             print(f"Error playing audio: {e}")
             print("Please check if:")
