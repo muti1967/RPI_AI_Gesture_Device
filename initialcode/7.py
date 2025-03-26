@@ -254,6 +254,10 @@ def read_task_info():
                 line = line.strip()
                 if line:  # Skip empty lines
                     task_number, audio_file, play_time = line.split(',')
+                    # Verify the audio file exists
+                    audio_path = os.path.join(AUDIO_FILES_DIR, audio_file)
+                    if not os.path.exists(audio_path):
+                        print(f"Warning: Audio file not found: {audio_path}")
                     tasks.append(Task(int(task_number), audio_file, play_time))
         return tasks
     except FileNotFoundError:
@@ -270,9 +274,28 @@ def play_scheduled_audio(task):
     if not task.completed:
         print(f"Playing task {task.task_number}: {task.audio_file}")
         try:
-            subprocess.run(["mpg123", task.audio_file], check=True)
-        except subprocess.CalledProcessError as e:
+            # Check if file exists
+            if not os.path.exists(task.audio_file):
+                print(f"Error: Audio file not found: {task.audio_file}")
+                return
+                
+            # Try to play the audio file
+            result = subprocess.run(["aplay", task.audio_file], 
+                                 capture_output=True, 
+                                 text=True)
+            
+            if result.returncode != 0:
+                print(f"Error playing audio: {result.stderr}")
+                # Try alternative playback method
+                print("Trying alternative playback method...")
+                subprocess.run(["mpg123", "-q", task.audio_file], 
+                             capture_output=True)
+        except Exception as e:
             print(f"Error playing audio: {e}")
+            print("Please check if:")
+            print("1. The audio file exists and is accessible")
+            print("2. The audio file format is supported (WAV for aplay, MP3 for mpg123)")
+            print("3. The audio system is properly configured")
 
 def schedule_tasks(tasks):
     for task in tasks:
@@ -289,6 +312,8 @@ class PAJ7620U2(object):
         time.sleep(0.5)  # Wait for the device to power up
         self._initialize_sensor()  # Initialize the sensor
         self.tasks = read_task_info()  # Load tasks from info.txt
+        # Test audio system
+        self._test_audio_system()
 
     def _initialize_sensor(self):
         try:
@@ -353,11 +378,41 @@ class PAJ7620U2(object):
         MSB = self._bus.read_byte_data(self._address, cmd + 1)
         return (MSB << 8) + LSB
 
+    def _test_audio_system(self):
+        print("Testing audio system...")
+        try:
+            # Try to play a test sound
+            subprocess.run(["speaker-test", "-t", "wav", "-c", "2", "-D", "hw:0,0", "-l", "1"], 
+                         capture_output=True)
+            print("Audio system test completed")
+        except Exception as e:
+            print(f"Warning: Audio system test failed: {e}")
+            print("Please check your audio configuration using 'alsamixer'")
+
     def play_audio(self, file_path):
         try:
-            subprocess.run(["mpg123", file_path], check=True)
-        except subprocess.CalledProcessError as e:
+            # Check if file exists
+            if not os.path.exists(file_path):
+                print(f"Error: Audio file not found: {file_path}")
+                return
+                
+            # Try to play the audio file
+            result = subprocess.run(["aplay", file_path], 
+                                 capture_output=True, 
+                                 text=True)
+            
+            if result.returncode != 0:
+                print(f"Error playing audio: {result.stderr}")
+                # Try alternative playback method
+                print("Trying alternative playback method...")
+                subprocess.run(["mpg123", "-q", file_path], 
+                             capture_output=True)
+        except Exception as e:
             print(f"Error playing audio: {e}")
+            print("Please check if:")
+            print("1. The audio file exists and is accessible")
+            print("2. The audio file format is supported (WAV for aplay, MP3 for mpg123)")
+            print("3. The audio system is properly configured")
 
 class BluetoothAgent(dbus.service.Object):
     def __init__(self, bus, path):
