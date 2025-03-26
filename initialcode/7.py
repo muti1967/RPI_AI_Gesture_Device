@@ -1,3 +1,12 @@
+#This version has these changes:
+#1. Added a function to check if the button is pressed
+#2. Added a function to enter pairing mode
+#3. Added a function to remove paired devices
+#4. Added a function to start bluetooth agent
+#5. Added a function to enter default state
+#6. Added a function to enter editing state
+#7. Added a function to scan for devices
+
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
 import time
@@ -9,13 +18,18 @@ import dbus
 import dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
 import subprocess
+from datetime import datetime
+import threading
+import schedule
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 # i2c address
 PAJ7620U2_I2C_ADDRESS = 0x73
 # Register Bank select
 PAJ_BANK_SELECT = 0xEF  # Bank0== 0x00,Bank1== 0x01
 # Register Bank 0
-PAJ_SUSPEND = 0x03  # I2C suspend command (Write = 0x01 to enter suspend state). I2C wake-up command is slave ID wake-up. Refer to topic “I2C Bus Timing Characteristics and Protocol”
+PAJ_SUSPEND = 0x03  # I2C suspend command (Write = 0x01 to enter suspend state). I2C wake-up command is slave ID wake-up. Refer to topic "I2C Bus Timing Characteristics and Protocol"
 PAJ_INT_FLAG1_MASK = 0x41  # Gesture detection interrupt flag mask
 PAJ_INT_FLAG2_MASK = 0x42  # Gesture/PS detection interrupt flag mask
 PAJ_INT_FLAG1 = 0x43  # Gesture detection interrupt flag
@@ -203,12 +217,78 @@ except Exception as e:
 finally:
     print("GPIO cleanup will happen at program exit")
 
+# Define paths
+INFO_FILE_PATH = "finalv/info/info.txt"
+AUDIO_FILES_DIR = "finalv/audio_files"
+
+class Task:
+    def __init__(self, task_number, audio_file, play_time):
+        self.task_number = task_number
+        self.audio_file = os.path.join(AUDIO_FILES_DIR, audio_file)  # Use full path for audio file
+        self.play_time = play_time
+        self.completed = False
+
+class InfoFileHandler(FileSystemEventHandler):
+    def __init__(self, sensor):
+        self.sensor = sensor
+        self.last_modified = 0
+
+    def on_modified(self, event):
+        if event.src_path == INFO_FILE_PATH:
+            current_time = time.time()
+            # Prevent multiple reloads within 1 second
+            if current_time - self.last_modified > 1:
+                print("Info file changed, reloading tasks...")
+                self.sensor.tasks = read_task_info()
+                # Reschedule all tasks
+                schedule.clear()
+                for task in self.sensor.tasks:
+                    schedule.every().day.at(task.play_time).do(play_scheduled_audio, task)
+                self.last_modified = current_time
+
+def read_task_info():
+    tasks = []
+    try:
+        with open(INFO_FILE_PATH, 'r') as file:
+            for line in file:
+                line = line.strip()
+                if line:  # Skip empty lines
+                    task_number, audio_file, play_time = line.split(',')
+                    tasks.append(Task(int(task_number), audio_file, play_time))
+        return tasks
+    except FileNotFoundError:
+        print(f"{INFO_FILE_PATH} not found. Creating default file...")
+        os.makedirs(os.path.dirname(INFO_FILE_PATH), exist_ok=True)
+        with open(INFO_FILE_PATH, 'w') as file:
+            file.write("1,1.mp3,23:05\n2,2.mp3,09:00")
+        return read_task_info()
+    except Exception as e:
+        print(f"Error reading {INFO_FILE_PATH}: {e}")
+        return []
+
+def play_scheduled_audio(task):
+    if not task.completed:
+        print(f"Playing task {task.task_number}: {task.audio_file}")
+        try:
+            subprocess.run(["mpg123", task.audio_file], check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Error playing audio: {e}")
+
+def schedule_tasks(tasks):
+    for task in tasks:
+        schedule.every().day.at(task.play_time).do(play_scheduled_audio, task)
+    
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
 class PAJ7620U2(object):
     def __init__(self, address=PAJ7620U2_I2C_ADDRESS):
         self._address = address  # Set the I2C address
         self._bus = smbus.SMBus(1)  # Initialize I2C bus
         time.sleep(0.5)  # Wait for the device to power up
         self._initialize_sensor()  # Initialize the sensor
+        self.tasks = read_task_info()  # Load tasks from info.txt
 
     def _initialize_sensor(self):
         try:
@@ -234,24 +314,32 @@ class PAJ7620U2(object):
             print(f"Gesture Data: {Gesture_Data}")  # Print only if motion is detected
 
         if Gesture_Data == PAJ_UP:
+            current_task = max(1, min(current_task, len(self.tasks)))
+            task = self.tasks[current_task - 1]
             print(f"Playing task[{current_task}]")
-            self.play_audio("/home/senior/RPI_AI_Gesture_Device/audio_test.mp3")
+            self.play_audio(task.audio_file)
         elif Gesture_Data == PAJ_DOWN:
+            current_task = max(1, min(current_task, len(self.tasks)))
+            task = self.tasks[current_task - 1]
             print(f"Playing recent task[{current_task}]")
-            self.play_audio("/home/senior/RPI_AI_Gesture_Device/audio_test.mp3")
+            self.play_audio(task.audio_file)
         elif Gesture_Data == PAJ_LEFT:
             current_task = max(1, current_task - 1)
             print(f"Moving to task[{current_task}]")
         elif Gesture_Data == PAJ_RIGHT:
-            current_task += 1
+            current_task = min(current_task + 1, len(self.tasks))
             print(f"Moving to task[{current_task}]")
         elif Gesture_Data == PAJ_FORWARD:
+            if 1 <= current_task <= len(self.tasks):
+                self.tasks[current_task - 1].completed = True
             print(f"Task[{current_task}] marked complete")
         elif Gesture_Data == PAJ_BACKWARD:
             print(f"Going back in task list")
         elif Gesture_Data == PAJ_CLOCKWISE:
+            current_task = max(1, min(current_task, len(self.tasks)))
+            task = self.tasks[current_task - 1]
             print(f"Replaying task[{current_task}]")
-            self.play_audio("/home/senior/RPI_AI_Gesture_Device/audio_test.mp3")
+            self.play_audio(task.audio_file)
         elif Gesture_Data == PAJ_COUNT_CLOCKWISE:
             print(f"Undo last action")
         elif Gesture_Data == PAJ_WAVE:
@@ -482,12 +570,30 @@ if __name__ == '__main__':
     current_task = 1
 
     try:
+        # Create directories if they don't exist
+        os.makedirs(os.path.dirname(INFO_FILE_PATH), exist_ok=True)
+        os.makedirs(AUDIO_FILES_DIR, exist_ok=True)
+
+        # Start the scheduling thread
+        scheduler_thread = threading.Thread(target=schedule_tasks, args=(sensor.tasks,))
+        scheduler_thread.daemon = True
+        scheduler_thread.start()
+
+        # Set up file monitoring
+        event_handler = InfoFileHandler(sensor)
+        observer = Observer()
+        observer.schedule(event_handler, path=os.path.dirname(INFO_FILE_PATH), recursive=False)
+        observer.start()
+        print(f"Monitoring {INFO_FILE_PATH} for changes...")
+
         remove_paired_devices()
         start_bluetooth_agent()
         enter_default_state()
     except KeyboardInterrupt:
         print("Exiting program...")
+        observer.stop()
     finally:
+        observer.join()
         print("GPIO cleanup mocked")
         GPIO.cleanup()
 
