@@ -1,11 +1,7 @@
 #This version has these changes:
-#1. Added a function to check if the button is pressed
-#2. Added a function to enter pairing mode
-#3. Added a function to remove paired devices
-#4. Added a function to start bluetooth agent
-#5. Added a function to enter default state
-#6. Added a function to enter editing state
-#7. Added a function to scan for devices
+#1. pulls info from info.txt
+#2. schedules tasks using info.txt
+#3. plays the assigned audio files at the assigned times
 
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
