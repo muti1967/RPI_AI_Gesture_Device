@@ -270,12 +270,14 @@ def read_task_info():
                     if not os.path.exists(audio_path):
                         print(f"Warning: Audio file not found: {audio_path}")
                     tasks.append(Task(int(task_number), audio_file, play_time))
+        print(f"Loaded {len(tasks)} tasks from info.txt")
         return tasks
     except FileNotFoundError:
-        print(f"{INFO_FILE_PATH} not found. Creating default file...")
+        print(f"{INFO_FILE_PATH} not found. Creating default file with 9 tasks...")
         os.makedirs(os.path.dirname(INFO_FILE_PATH), exist_ok=True)
         with open(INFO_FILE_PATH, 'w') as file:
-            file.write("1,1.mp3,23:05\n2,2.mp3,09:00")
+            for i in range(1, 10):  # Create 9 tasks
+                file.write(f"{i},{i}.mp3,09:00\n")
         return read_task_info()
     except Exception as e:
         print(f"Error reading {INFO_FILE_PATH}: {e}")
@@ -568,33 +570,33 @@ class PAJ7620U2(object):
             current_task = max(1, current_task - 1)
             if 1 <= current_task <= len(self.tasks):
                 task = self.tasks[current_task - 1]
-                print(f"Moving to task[{current_task}]")
+                print(f"Moving to task[{current_task}] of {len(self.tasks)}")
                 task.play_nav_audio()
         elif gesture == PAJ_RIGHT:
             # Move to next task
             current_task = min(current_task + 1, len(self.tasks))
             if 1 <= current_task <= len(self.tasks):
                 task = self.tasks[current_task - 1]
-                print(f"Moving to task[{current_task}]")
+                print(f"Moving to task[{current_task}] of {len(self.tasks)}")
                 task.play_nav_audio()
         elif gesture == PAJ_DOWN:
             # Move to previous task
             current_task = max(1, current_task - 1)
             if 1 <= current_task <= len(self.tasks):
                 task = self.tasks[current_task - 1]
-                print(f"Moving to task[{current_task}]")
+                print(f"Moving to task[{current_task}] of {len(self.tasks)}")
                 task.play_nav_audio()
         elif gesture == PAJ_FORWARD:
             # Play the current task's audio
             if 1 <= current_task <= len(self.tasks):
                 task = self.tasks[current_task - 1]
-                print(f"Playing task[{current_task}]")
+                print(f"Playing task[{current_task}] of {len(self.tasks)}")
                 self.play_audio(task.audio_file)
         elif gesture == PAJ_COUNT_CLOCKWISE:
             # Undo completion of current task
             if 1 <= current_task <= len(self.tasks):
                 self.tasks[current_task - 1].completed = False
-                print(f"Task[{current_task}] marked incomplete")
+                print(f"Task[{current_task}] of {len(self.tasks)} marked incomplete")
 
 class BluetoothAgent(dbus.service.Object):
     def __init__(self, bus, path):
@@ -818,6 +820,7 @@ if __name__ == '__main__':
         # Create directories if they don't exist
         os.makedirs(os.path.dirname(INFO_FILE_PATH), exist_ok=True)
         os.makedirs(AUDIO_FILES_DIR, exist_ok=True)
+        os.makedirs(NAV_AUDIO_DIR, exist_ok=True)  # Create navaudio directory
 
         # Start the scheduling thread
         scheduler_thread = threading.Thread(target=schedule_tasks, args=(sensor.tasks,))
@@ -830,6 +833,7 @@ if __name__ == '__main__':
         observer.schedule(event_handler, path=os.path.dirname(INFO_FILE_PATH), recursive=False)
         observer.start()
         print(f"Monitoring {INFO_FILE_PATH} for changes...")
+        print(f"Total number of tasks: {len(sensor.tasks)}")
 
         remove_paired_devices()
         start_bluetooth_agent()
