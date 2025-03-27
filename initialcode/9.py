@@ -270,6 +270,22 @@ def read_task_info():
                     if not os.path.exists(audio_path):
                         print(f"Warning: Audio file not found: {audio_path}")
                     tasks.append(Task(int(task_number), audio_file, play_time))
+        
+        # If we have fewer than 9 tasks, update the file
+        if len(tasks) < 9:
+            print(f"Updating info.txt to include all 9 tasks...")
+            with open(INFO_FILE_PATH, 'w') as file:
+                for i in range(1, 10):  # Create 9 tasks
+                    file.write(f"{i},{i}.mp3,09:00\n")
+            # Reload tasks after updating
+            tasks = []
+            with open(INFO_FILE_PATH, 'r') as file:
+                for line in file:
+                    line = line.strip()
+                    if line:  # Skip empty lines
+                        task_number, audio_file, play_time = line.split(',')
+                        tasks.append(Task(int(task_number), audio_file, play_time))
+        
         print(f"Loaded {len(tasks)} tasks from info.txt")
         return tasks
     except FileNotFoundError:
@@ -813,6 +829,11 @@ if __name__ == '__main__':
     print("cc - Simulate COUNTER-CLOCKWISE gesture")
     print("q - Quit program")
     
+    # Delete existing info.txt to ensure we start fresh
+    if os.path.exists(INFO_FILE_PATH):
+        print("Removing existing info.txt to ensure fresh start...")
+        os.remove(INFO_FILE_PATH)
+    
     sensor = PAJ7620U2()
     current_task = 1
 
@@ -834,6 +855,7 @@ if __name__ == '__main__':
         observer.start()
         print(f"Monitoring {INFO_FILE_PATH} for changes...")
         print(f"Total number of tasks: {len(sensor.tasks)}")
+        print("Current task: 1")
 
         remove_paired_devices()
         start_bluetooth_agent()
