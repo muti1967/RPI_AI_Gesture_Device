@@ -321,35 +321,116 @@ def schedule_tasks(tasks):
 class PAJ7620U2(object):
     def __init__(self, address=PAJ7620U2_I2C_ADDRESS):
         self._address = address  # Set the I2C address
-        self._bus = smbus.SMBus(1)  # Initialize I2C bus
-        time.sleep(0.5)  # Wait for the device to power up
+        self._bus = None
+        self._initialize_i2c()
         self._initialize_sensor()  # Initialize the sensor
         self.tasks = read_task_info()  # Load tasks from info.txt
         # Test audio system
         self._test_audio_system()
 
-    def _initialize_sensor(self):
+    def _initialize_i2c(self):
         try:
-            if self._read_byte(0x00) == 0x20:
-                print("\nGesture Sensor READY\n")
-                for num in range(len(Init_Gesture_Array)):
-                    self._write_byte(Init_Gesture_Array[num][0], Init_Gesture_Array[num][1])
-            else:
-                print("\nGesture Sensor NOT READY - check pin connections\n")
+            print("Initializing I2C bus...")
+            self._bus = smbus.SMBus(1)  # Initialize I2C bus
+            time.sleep(0.1)  # Short delay after bus initialization
+            
+            # First write to select Bank 0
+            self._write_byte(PAJ_BANK_SELECT, 0x00)
+            time.sleep(0.1)
+            
+            # Test I2C communication
+            try:
+                device_id = self._read_byte(0x00)
+                print(f"Device ID: 0x{device_id:02X}")
+                if device_id != 0x20:
+                    print("Warning: Unexpected device ID. Expected 0x20")
+            except Exception as e:
+                print(f"Error reading device ID: {e}")
+                raise
+                
         except Exception as e:
-            print(f"Error initializing sensor: {e}")
+            print(f"Error initializing I2C: {e}")
+            print("Please check:")
+            print("1. I2C is enabled (sudo raspi-config)")
+            print("2. Sensor is properly connected")
+            print("3. Correct I2C address (0x73)")
+            raise
+
+    def _initialize_sensor(self):
+        max_retries = 3
+        retry_count = 0
+        
+        while retry_count < max_retries:
+            try:
+                print(f"\nAttempting to initialize sensor (attempt {retry_count + 1}/{max_retries})...")
+                
+                # First select Bank 0
+                self._write_byte(PAJ_BANK_SELECT, 0x00)
+                time.sleep(0.1)
+                
+                # Read and verify device ID
+                device_id = self._read_byte(0x00)
+                print(f"Device ID: 0x{device_id:02X}")
+                
+                if device_id == 0x20:
+                    print("\nGesture Sensor READY")
+                    
+                    # Initialize gesture registers in Bank 0
+                    for num in range(len(Init_Gesture_Array)):
+                        self._write_byte(Init_Gesture_Array[num][0], Init_Gesture_Array[num][1])
+                        time.sleep(0.01)  # Small delay between register writes
+                    
+                    print("Gesture registers initialized successfully")
+                    
+                    # Enable gesture detection
+                    self._write_byte(PAJ_BANK_SELECT, 0x00)
+                    self._write_byte(PAJ_EN, 0x01)
+                    
+                    return
+                else:
+                    print(f"\nUnexpected device ID: 0x{device_id:02X}")
+                    print("Expected: 0x20")
+                    retry_count += 1
+                    time.sleep(1)  # Wait before retry
+                    
+            except Exception as e:
+                print(f"Error during initialization attempt {retry_count + 1}: {e}")
+                retry_count += 1
+                time.sleep(1)  # Wait before retry
+                
+        print("\nFailed to initialize sensor after multiple attempts")
+        print("Please check:")
+        print("1. Sensor connections")
+        print("2. I2C address (0x73)")
+        print("3. Power supply")
+        raise Exception("Sensor initialization failed")
 
     def _read_byte(self, cmd):
-        return self._bus.read_byte_data(self._address, cmd)
+        try:
+            return self._bus.read_byte_data(self._address, cmd)
+        except Exception as e:
+            print(f"Error reading byte at address 0x{cmd:02X}: {e}")
+            raise
 
     def _write_byte(self, cmd, val):
-        self._bus.write_byte_data(self._address, cmd, val)
+        try:
+            self._bus.write_byte_data(self._address, cmd, val)
+        except Exception as e:
+            print(f"Error writing byte 0x{val:02X} to address 0x{cmd:02X}: {e}")
+            raise
 
     def check_gesture(self):
-        global current_task
-        Gesture_Data = self._read_u16(0x43)
-        if Gesture_Data != 0:
-            print(f"Gesture Data: {Gesture_Data}")  # Print only if motion is detected
+        try:
+            # Make sure we're in Bank 0 for gesture reading
+            self._write_byte(PAJ_BANK_SELECT, 0x00)
+            time.sleep(0.01)
+            
+            Gesture_Data = self._read_u16(0x43)
+            if Gesture_Data != 0:
+                print(f"Gesture Data: 0x{Gesture_Data:04X}")  # Print in hex format
+        except Exception as e:
+            print(f"Error reading gesture data: {e}")
+            return 0
 
         if Gesture_Data == PAJ_UP:
             # Move to next task
