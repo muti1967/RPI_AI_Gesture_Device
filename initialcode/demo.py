@@ -686,49 +686,14 @@ def check_button_press():
         time.sleep(0.1)
 
 # Task states
-def enter_default_state():
+def enter_default_state(sensor):
     print("Entering Default State: Playing tasks")
     while True:
-        gesture = sensor.check_gesture()
-        if gesture == PAJ_FORWARD:
-            print("Stopping task playback and marking task complete")
-            break
-        elif gesture == PAJ_CLOCKWISE:
-            print("Replaying last task")
-            sensor.play_audio("/home/senior/RPI_AI_Gesture_Device/audio_test.mp3")
-        elif gesture == PAJ_WAVE:
-            print("Playing calming audio")
-            sensor.play_audio("/home/senior/RPI_AI_Gesture_Device/audio_test.mp3")
-        
-        # Check button press in a non-blocking manner
-        if GPIO.input(17) == GPIO.LOW:
-            button_press_count = 0
-            button_pressed_time = 0
-            start_time = time.time()
-            while GPIO.input(17) == GPIO.LOW:
-                button_pressed_time += 1
-                print(f"Button held for {button_pressed_time * 0.1} seconds")
-                time.sleep(0.1)  # Debounce delay
-                
-                if button_pressed_time >= 30:  # 3 seconds
-                    print("Button held for 3 seconds, entering pairing mode...")
-                    import asyncio
-                    asyncio.run(enter_pairing_mode())
-                    return
-            if button_pressed_time > 0:
-                button_press_count += 1
-                print(f"Button pressed {button_press_count} time(s)")
-                button_pressed_time = 0
-                time.sleep(0.1)  # Debounce delay
-
-            if button_press_count >= 2 and (time.time() - start_time) <= 3:
-                print("Button pressed 2 times within 3 seconds, entering editing mode...")
-                enter_editing_state()
-                return
-            elif (time.time() - start_time) > 3:
-                button_press_count = 0
-                start_time = time.time()
-        time.sleep(0.1)
+        if len(sensor.tasks) > 0:
+            task_1 = sensor.tasks[0]
+            print("Playing task 1 in default state...")
+            task_1.play_nav_audio()
+        time.sleep(30)  # Wait for 30 seconds before playing again
 
 def enter_editing_state():
     print("Entering Editing State")
@@ -803,7 +768,12 @@ if __name__ == '__main__':
 
         remove_paired_devices()
         start_bluetooth_agent()
-        enter_default_state()
+
+        # Start the default state in a separate thread
+        default_state_thread = threading.Thread(target=enter_default_state, args=(sensor,))
+        default_state_thread.daemon = True
+        default_state_thread.start()
+
     except KeyboardInterrupt:
         print("Exiting program...")
         observer.stop()
