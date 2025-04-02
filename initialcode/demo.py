@@ -687,7 +687,7 @@ def check_button_press():
 
 # Task states
 def play_task_1_periodically(sensor):
-    task_1_audio_path = os.path.join(BASE_DIR, "finalv/audio_files/1.mp3")  # Explicit path for task 1 audio
+    task_1_audio_path = os.path.join(BASE_DIR, "finalv/audio_files/navaudio/1.mp3")  # Explicit path for task 1 audio
     while True:
         if os.path.exists(task_1_audio_path):
             print("Playing task 1 periodically...")
