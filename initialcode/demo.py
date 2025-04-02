@@ -372,8 +372,6 @@ class PAJ7620U2(object):
     def __init__(self, address=PAJ7620U2_I2C_ADDRESS):
         self._address = address
         self._bus = None
-        self._initialize_i2c()
-        self._initialize_sensor()
         self.tasks = read_task_info()
         self._test_audio_system()
         # Start keyboard input thread
@@ -382,81 +380,14 @@ class PAJ7620U2(object):
         self.keyboard_thread.start()
 
     def _initialize_i2c(self):
-        try:
-            print("Initializing I2C bus...")
-            self._bus = smbus.SMBus(1)  # Initialize I2C bus
-            time.sleep(0.1)  # Short delay after bus initialization
-            
-            # First write to select Bank 0
-            self._write_byte(PAJ_BANK_SELECT, 0x00)
-            time.sleep(0.1)
-            
-            # Test I2C communication
-            try:
-                device_id = self._read_byte(0x00)
-                print(f"Device ID: 0x{device_id:02X}")
-                if device_id != 0x20:
-                    print("Warning: Unexpected device ID. Expected 0x20")
-            except Exception as e:
-                print(f"Error reading device ID: {e}")
-                raise
-                
-        except Exception as e:
-            print(f"Error initializing I2C: {e}")
-            print("Please check:")
-            print("1. I2C is enabled (sudo raspi-config)")
-            print("2. Sensor is properly connected")
-            print("3. Correct I2C address (0x73)")
-            raise
+        print("Skipping I2C initialization as the gesture sensor is not connected.")
 
     def _initialize_sensor(self):
-        max_retries = 3
-        retry_count = 0
-        
-        while retry_count < max_retries:
-            try:
-                print(f"\nAttempting to initialize sensor (attempt {retry_count + 1}/{max_retries})...")
-                
-                # First select Bank 0
-                self._write_byte(PAJ_BANK_SELECT, 0x00)
-                time.sleep(0.1)
-                
-                # Read and verify device ID
-                device_id = self._read_byte(0x00)
-                print(f"Device ID: 0x{device_id:02X}")
-                
-                if device_id == 0x20:
-                    print("\nGesture Sensor READY")
-                    
-                    # Initialize gesture registers in Bank 0
-                    for num in range(len(Init_Gesture_Array)):
-                        self._write_byte(Init_Gesture_Array[num][0], Init_Gesture_Array[num][1])
-                        time.sleep(0.01)  # Small delay between register writes
-                    
-                    print("Gesture registers initialized successfully")
-                    
-                    # Enable gesture detection
-                    self._write_byte(PAJ_BANK_SELECT, 0x00)
-                    self._write_byte(PAJ_EN, 0x01)
-                    
-                    return
-                else:
-                    print(f"\nUnexpected device ID: 0x{device_id:02X}")
-                    print("Expected: 0x20")
-                    retry_count += 1
-                    time.sleep(1)  # Wait before retry
-                    
-            except Exception as e:
-                print(f"Error during initialization attempt {retry_count + 1}: {e}")
-                retry_count += 1
-                time.sleep(1)  # Wait before retry
-                
-        print("\nFailed to initialize sensor after multiple attempts")
-        print("Please check:")
-        print("1. Sensor connections")
-        print("2. I2C address (0x73)")
-        print("3. Power supply")
-        raise Exception("Sensor initialization failed")
+        print("Skipping sensor initialization as the gesture sensor is not connected.")
+
+    def check_gesture(self):
+        print("Skipping gesture check as the gesture sensor is not connected.")
+        return 0
 
     def _read_byte(self, cmd):
         try:
