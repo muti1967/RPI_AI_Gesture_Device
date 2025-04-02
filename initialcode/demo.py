@@ -686,12 +686,11 @@ def check_button_press():
         time.sleep(0.1)
 
 # Task states
-def enter_default_state(sensor):
-    print("Entering Default State: Playing tasks")
+def play_task_1_periodically(sensor):
     task_1_audio_path = os.path.join(AUDIO_FILES_DIR, "1.mp3")  # Explicit path for task 1 audio
     while True:
         if os.path.exists(task_1_audio_path):
-            print("Playing task 1 in default state...")
+            print("Playing task 1 periodically...")
             try:
                 subprocess.run(["ffplay", "-nodisp", "-autoexit", task_1_audio_path], 
                                capture_output=True, 
@@ -763,10 +762,10 @@ if __name__ == '__main__':
         remove_paired_devices()
         start_bluetooth_agent()
 
-        # Start the default state in a separate thread
-        default_state_thread = threading.Thread(target=enter_default_state, args=(sensor,))
-        default_state_thread.daemon = True
-        default_state_thread.start()
+        # Start the periodic task 1 playback thread
+        periodic_task_1_thread = threading.Thread(target=play_task_1_periodically, args=(sensor,))
+        periodic_task_1_thread.daemon = True
+        periodic_task_1_thread.start()
 
     except KeyboardInterrupt:
         print("Exiting program...")
