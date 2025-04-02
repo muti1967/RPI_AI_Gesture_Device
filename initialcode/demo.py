@@ -687,19 +687,25 @@ def check_button_press():
 
 # Task states
 def play_task_1_periodically(sensor):
-    task_1_audio_path = os.path.join(BASE_DIR, "finalv/audio_files/navaudio/1.mp3")  # Explicit path for task 1 audio
+    task_1_audio_path = os.path.join(BASE_DIR, "finalv/audio_files/navaudio/1.mp3")
+    task_2_audio_path = os.path.join(BASE_DIR, "finalv/audio_files/navaudio/2.mp3")
+    play_task_1 = True  # Start with task 1
+
     while True:
-        if os.path.exists(task_1_audio_path):
-            print("Playing task 1 periodically...")
+        current_audio_path = task_1_audio_path if play_task_1 else task_2_audio_path
+        if os.path.exists(current_audio_path):
+            print(f"Playing {'task 1' if play_task_1 else 'task 2'} periodically...")
             try:
-                subprocess.run(["ffplay", "-nodisp", "-autoexit", task_1_audio_path], 
+                subprocess.run(["ffplay", "-nodisp", "-autoexit", current_audio_path], 
                                capture_output=True, 
                                text=True)
             except Exception as e:
-                print(f"Error playing task 1 audio: {e}")
+                print(f"Error playing {'task 1' if play_task_1 else 'task 2'} audio: {e}")
         else:
-            print(f"Task 1 audio file not found: {task_1_audio_path}")
-        time.sleep(30)  # Wait for 30 seconds before playing again
+            print(f"{'Task 1' if play_task_1 else 'Task 2'} audio file not found: {current_audio_path}")
+        
+        play_task_1 = not play_task_1  # Alternate between task 1 and task 2
+        time.sleep(30)  # Wait for 30 seconds before playing the next audio
 
 def enter_editing_state():
     print("Entering Editing State")
