@@ -688,11 +688,18 @@ def check_button_press():
 # Task states
 def enter_default_state(sensor):
     print("Entering Default State: Playing tasks")
+    task_1_audio_path = os.path.join(AUDIO_FILES_DIR, "1.mp3")  # Explicit path for task 1 audio
     while True:
-        if len(sensor.tasks) > 0:
-            task_1 = sensor.tasks[0]
+        if os.path.exists(task_1_audio_path):
             print("Playing task 1 in default state...")
-            task_1.play_nav_audio()
+            try:
+                subprocess.run(["ffplay", "-nodisp", "-autoexit", task_1_audio_path], 
+                               capture_output=True, 
+                               text=True)
+            except Exception as e:
+                print(f"Error playing task 1 audio: {e}")
+        else:
+            print(f"Task 1 audio file not found: {task_1_audio_path}")
         time.sleep(30)  # Wait for 30 seconds before playing again
 
 def enter_editing_state():
@@ -714,14 +721,6 @@ async def scan():
     devices = await BleakScanner.discover()
     for device in devices:
         print(device)
-
-def play_task_1_periodically(sensor):
-    while True:
-        if len(sensor.tasks) > 0:
-            task_1 = sensor.tasks[0]
-            print("Playing task 1 periodically...")
-            task_1.play_nav_audio()
-        time.sleep(30)  # Wait for 30 seconds before playing again
 
 if __name__ == '__main__':
     print("\nGesture Sensor Test Program ...")
@@ -751,11 +750,6 @@ if __name__ == '__main__':
         scheduler_thread = threading.Thread(target=schedule_tasks, args=(sensor.tasks,))
         scheduler_thread.daemon = True
         scheduler_thread.start()
-
-        # Start the periodic task 1 playback thread
-        periodic_task_1_thread = threading.Thread(target=play_task_1_periodically, args=(sensor,))
-        periodic_task_1_thread.daemon = True
-        periodic_task_1_thread.start()
 
         # Set up file monitoring
         event_handler = InfoFileHandler(sensor)
