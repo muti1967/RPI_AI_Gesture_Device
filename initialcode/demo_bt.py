@@ -225,8 +225,31 @@ class PAJ7620U2(object):
         print("Skipping sensor initialization as the gesture sensor is not connected.")
 
     def check_gesture(self):
-        print("Skipping gesture check as the gesture sensor is not connected.")
-        return 0
+        global current_task
+        try:
+            # Simulate reading gesture data (replace with actual sensor reading logic)
+            gesture_data = self._read_u16(PAJ_INT_FLAG1)
+
+            if gesture_data == PAJ_RIGHT:  # Swipe right
+                current_task = min(current_task + 1, len(self.tasks))
+                print(f"Swiped RIGHT: Moving to task {current_task}")
+                task = self.tasks[current_task - 1]
+                task.play_nav_audio()
+
+            elif gesture_data == PAJ_LEFT:  # Swipe left
+                current_task = max(1, current_task - 1)
+                print(f"Swiped LEFT: Moving to task {current_task}")
+                task = self.tasks[current_task - 1]
+                task.play_nav_audio()
+
+            elif gesture_data == PAJ_FORWARD:  # Swipe forward
+                if 1 <= current_task <= len(self.tasks):
+                    task = self.tasks[current_task - 1]
+                    print(f"Swiped FORWARD: Playing task {current_task}")
+                    self.play_audio(task.audio_file)
+
+        except Exception as e:
+            print(f"Error processing gesture: {e}")
 
     def _read_byte(self, cmd):
         try:
