@@ -763,11 +763,12 @@ periph = peripheral.Peripheral(adapter_address=adapter_address, local_name='RPi-
 
 # Add BLE service
 service_uuid = '12345678-1234-5678-1234-56789abcdef0'
-periph.add_service(uuid=service_uuid, primary=True)
+service_id = 1  # Unique service ID
+periph.add_service(srv_id=service_id, uuid=service_uuid, primary=True)
 
 # Add BLE characteristic
 characteristic_uuid = '12345678-1234-5678-1234-56789abcdef1'
-periph.add_characteristic(service_uuid=service_uuid,
+periph.add_characteristic(service_id=service_id,
                           uuid=characteristic_uuid,
                           value=[0x00],
                           notifying=False,
