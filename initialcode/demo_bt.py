@@ -749,7 +749,10 @@ my_service = {
 
 # Fetch the Bluetooth adapter address dynamically
 try:
-    adapter_address = adapter.Adapter.available()[0].address  # Get the first available adapter's address
+    adapter_list = list(adapter.Adapter.available())  # Convert generator to list
+    if not adapter_list:
+        raise IndexError("No Bluetooth adapter found.")
+    adapter_address = adapter_list[0].address  # Get the first available adapter's address
     print(f"Using Bluetooth adapter address: {adapter_address}")
 except IndexError:
     print("Error: No Bluetooth adapter found. Ensure Bluetooth is enabled and available.")
