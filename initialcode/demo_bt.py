@@ -734,28 +734,22 @@ button = Button(17)
 
 # BLE GATT characteristic behavior
 def read_callback():
-    print("iPhone is reading data...")
-    return [0x42]  # Example byte data
+    return [ord(c) for c in 'Hello']  # Example response data
 
-def write_callback(value):
-    print(f"Received from iPhone: {value}")
+# Define BLE service and characteristics
+my_service = {
+    'UUID': '12345678-1234-5678-1234-56789abcdef0',
+    'characteristics': [{
+        'UUID': '12345678-1234-5678-1234-56789abcdef1',
+        'value': [0x00],
+        'read': read_callback
+    }]
+}
 
-# BLE characteristic and service
-char_uuid = '12345678-1234-5678-1234-56789abcdef1'
-service_uuid = '12345678-1234-5678-1234-56789abcdef0'
-
-my_char = peripheral.Characteristic(char_uuid,
-                                    ['read', 'write'],
-                                    read_callback,
-                                    write_callback)
-
-my_service = peripheral.Service(service_uuid, True)
-my_service.add_characteristic(my_char)
-
-# BLE Peripheral definition
-ble_peripheral = peripheral.Peripheral(adapter_addr=None,
-                                       local_name='RPi-BLE',
-                                       services=[my_service])
+# Initialize BLE Peripheral
+periph = peripheral.Peripheral(adapter_addr=None,  # Replace with your adapter address if needed
+                               local_name='RPi-BLE',
+                               services=[my_service])
 
 # Modify the main loop to include BLE advertising
 if __name__ == '__main__':
@@ -819,12 +813,11 @@ if __name__ == '__main__':
                     os.system("bluetoothctl power on")
 
                     # Start advertising
-                    ble_peripheral.publish()
+                    periph.run()
                     print("BLE advertising...")
 
                     time.sleep(10)  # BLE stays discoverable for 10 seconds
 
-                    ble_peripheral.unpublish()
                     print("Stopped BLE advertising.\n")
                     break
 
