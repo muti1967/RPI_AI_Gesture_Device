@@ -501,11 +501,11 @@ periph = peripheral.Peripheral(adapter_address=adapter_address, local_name='RPi-
 
 # Add BLE service and characteristic via Bluezero
 periph.add_service(1, service_uuid, primary=True)
-periph.add_characteristic(1, characteristic_uuid,
-                           value=[0x00],
-                           notifying=False,
-                           flags=['read'],
-                           read_callback=read_callback)
+periph.add_characteristic(1, 1, characteristic_uuid,
+                          value=[0x00],
+                          notifying=False,
+                          flags=['read'],
+                          read_callback=read_callback)
 
 
 # ----------------------------------------------------------------
