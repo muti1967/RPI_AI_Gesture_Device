@@ -747,8 +747,10 @@ my_service = {
 }
 
 # Initialize BLE Peripheral
-periph = peripheral.Peripheral(local_name='RPi-BLE',  # Set the local name for the device
-                               services=[my_service])
+periph = peripheral.Peripheral(local_name='RPi-BLE')  # Set the local name for the device
+
+# Add BLE service and characteristics
+periph.add_service(my_service)
 
 # Modify the main loop to include BLE advertising
 if __name__ == '__main__':
@@ -812,7 +814,6 @@ if __name__ == '__main__':
                     os.system("bluetoothctl power on")
 
                     # Start advertising
-                    periph.add_service(my_service)  # Add the service to the peripheral
                     periph.publish()  # Start advertising
                     print("BLE advertising...")
 
