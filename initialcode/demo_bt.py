@@ -23,6 +23,7 @@ import sys
 import select
 from gpiozero import Button
 from bluezero import peripheral
+from bluezero import adapter
 
 # i2c address
 PAJ7620U2_I2C_ADDRESS = 0x73
@@ -746,8 +747,15 @@ my_service = {
     }]
 }
 
+# Fetch the Bluetooth adapter address dynamically
+try:
+    adapter_address = adapter.Adapter.available()[0].address  # Get the first available adapter's address
+    print(f"Using Bluetooth adapter address: {adapter_address}")
+except IndexError:
+    print("Error: No Bluetooth adapter found. Ensure Bluetooth is enabled and available.")
+    sys.exit(1)
+
 # Initialize BLE Peripheral
-adapter_address = "XX:XX:XX:XX:XX:XX"  # Replace with the actual Bluetooth adapter address
 periph = peripheral.Peripheral(adapter_address=adapter_address, local_name='RPi-BLE')  # Set the local name for the device
 
 # Add BLE service and characteristics
