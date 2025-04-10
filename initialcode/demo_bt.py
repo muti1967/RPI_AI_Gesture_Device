@@ -747,7 +747,8 @@ my_service = {
 }
 
 # Initialize BLE Peripheral
-periph = peripheral.Peripheral(local_name='RPi-BLE')  # Set the local name for the device
+adapter_address = "XX:XX:XX:XX:XX:XX"  # Replace with the actual Bluetooth adapter address
+periph = peripheral.Peripheral(adapter_address=adapter_address, local_name='RPi-BLE')  # Set the local name for the device
 
 # Add BLE service and characteristics
 periph.add_service(my_service)
