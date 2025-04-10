@@ -103,7 +103,7 @@ NAV_AUDIO_DIR = os.path.join(AUDIO_FILES_DIR, "navaudio")
 class Task:
     def __init__(self, task_number, audio_file, play_time):
         self.task_number = task_number
-        self.audio_file = os.path.join(AUDIO_FILES_DIR, audio_file)  # Full path for audio file
+        self.audio_file = os.path.join(AUDIO_FILES_DIR, audio_file)  # Use full path
         self.play_time = play_time
         self.completed = False
 
@@ -130,6 +130,8 @@ class InfoFileHandler(FileSystemEventHandler):
                 schedule.clear()
                 for task in self.sensor.tasks:
                     schedule.every().day.at(task.play_time).do(play_scheduled_audio, task)
+                # Also schedule the task one-two playback every minute.
+                schedule.every(1).minute.do(play_task_one_two)
                 self.last_modified = current_time
 
 def read_task_info():
@@ -186,9 +188,33 @@ def play_scheduled_audio(task):
             print("2. The audio system is configured")
             print("3. The file format is supported")
 
+def play_task_one_two():
+    file1 = os.path.join(AUDIO_FILES_DIR, "1.mp3")
+    file2 = os.path.join(AUDIO_FILES_DIR, "2.mp3")
+    if os.path.exists(file1):
+        print("Playing Task 1 (1.mp3)")
+        try:
+            subprocess.run(["ffplay", "-nodisp", "-autoexit", file1],
+                           capture_output=True, text=True)
+        except Exception as e:
+            print(f"Error playing Task 1: {e}")
+    else:
+        print("Task 1 file not found:", file1)
+    if os.path.exists(file2):
+        print("Playing Task 2 (2.mp3)")
+        try:
+            subprocess.run(["ffplay", "-nodisp", "-autoexit", file2],
+                           capture_output=True, text=True)
+        except Exception as e:
+            print(f"Error playing Task 2: {e}")
+    else:
+        print("Task 2 file not found:", file2)
+
 def schedule_tasks(tasks):
     for task in tasks:
         schedule.every().day.at(task.play_time).do(play_scheduled_audio, task)
+    # Also schedule play_task_one_two to run every minute.
+    schedule.every(1).minute.do(play_task_one_two)
     while True:
         schedule.run_pending()
         time.sleep(1)
@@ -210,7 +236,6 @@ class PAJ7620U2(object):
 
     def _initialize_sensor(self):
         try:
-            # Simple check for sensor readiness; adjust as needed.
             if self._read_byte(0x00) == 0x20:
                 print("\nGesture Sensor READY\n")
                 for reg, val in Init_Gesture_Array:
@@ -260,7 +285,6 @@ class PAJ7620U2(object):
         if Gesture_Data != 0:
             print(f"Gesture Data: {Gesture_Data}")
 
-        # Interpret gesture codes:
         if Gesture_Data == PAJ_UP:
             print(f"Gesture UP detected: Playing task[{current_task}]")
             self.play_audio("/home/senior/RPI_AI_Gesture_Device/audio_test.mp3")
@@ -295,7 +319,6 @@ class PAJ7620U2(object):
                 self.play_audio(task.audio_file)
             else:
                 print("Gesture FORWARD detected: Invalid task index")
-        # Additional gesture cases (e.g. PAJ_CLOCKWISE, PAJ_COUNT_CLOCKWISE) can be added here.
         return Gesture_Data
 
 # ----------------------------------------------------------------
@@ -408,7 +431,6 @@ def enter_default_state():
     print("Entering Default State: Monitoring gestures")
     while True:
         print("Default state active at", datetime.now().strftime("%H:%M:%S"))
-        # Read and process gesture data from the sensor.
         gesture = sensor.check_gesture()
         time.sleep(1)
 
@@ -416,7 +438,6 @@ def enter_editing_state():
     print("Entering Editing State")
     while True:
         gesture = sensor.check_gesture()
-        # Implement editing-state gesture actions as desired.
         time.sleep(1)
 
 # ----------------------------------------------------------------
@@ -464,7 +485,6 @@ def advertise_ble():
     except Exception as e:
         print(f"Error during BLE advertising: {e}")
 
-# Create a Button instance on GPIO17 with hold_time of 3 seconds.
 ble_button = Button(17, pull_up=True, hold_time=3)
 ble_button.when_held = advertise_ble
 
@@ -478,7 +498,6 @@ if __name__ == '__main__':
     if os.path.exists(INFO_FILE_PATH):
         print("Removing existing info.txt to ensure fresh start...")
         os.remove(INFO_FILE_PATH)
-    # Instantiate sensor (which loads tasks and initializes the sensor)
     sensor = PAJ7620U2()
     current_task = 1
 
@@ -487,12 +506,12 @@ if __name__ == '__main__':
         os.makedirs(AUDIO_FILES_DIR, exist_ok=True)
         os.makedirs(NAV_AUDIO_DIR, exist_ok=True)
 
-        # Start scheduler thread for daily task playback based on info.txt
+        # Start scheduler thread for tasks based on info.txt and play tasks 1 and 2 every minute.
         scheduler_thread = threading.Thread(target=schedule_tasks, args=(sensor.tasks,))
         scheduler_thread.daemon = True
         scheduler_thread.start()
 
-        # Start file observer to monitor info.txt changes
+        # Start file observer to monitor info.txt changes.
         event_handler = InfoFileHandler(sensor)
         observer = Observer()
         observer.schedule(event_handler, path=os.path.dirname(INFO_FILE_PATH), recursive=False)
@@ -504,13 +523,7 @@ if __name__ == '__main__':
         remove_paired_devices()
         start_bluetooth_agent()
 
-        # (Optional) Start any periodic audio tasks if needed.
-        # For example, play a navigation audio periodically:
-        # periodic_task_thread = threading.Thread(target=play_task_1_periodically, args=(sensor,))
-        # periodic_task_thread.daemon = True
-        # periodic_task_thread.start()
-
-        # The ble_button instance (created above) will trigger BLE advertising when held.
+        # The ble_button instance will trigger BLE advertising when held.
         # Enter the default state loop to continuously check for gestures.
         enter_default_state()
 
