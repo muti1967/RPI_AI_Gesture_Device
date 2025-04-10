@@ -23,6 +23,12 @@ from bluezero import adapter
 import asyncio
 
 # ----------------------------------------------------------------
+# Pre-Initialization: Clear leftover GPIO state and disable warnings
+# ----------------------------------------------------------------
+GPIO.setwarnings(False)
+GPIO.cleanup()
+
+# ----------------------------------------------------------------
 # Sensor/Gesture Constants and Register Arrays
 # ----------------------------------------------------------------
 
@@ -228,6 +234,7 @@ class PAJ7620U2(object):
         self._address = address
         try:
             self._bus = smbus.SMBus(1)
+            time.sleep(2)  # Delay to give sensor time to power up
         except Exception as e:
             print(f"Error opening I2C bus: {e}")
             sys.exit(1)
@@ -242,6 +249,7 @@ class PAJ7620U2(object):
                     self._write_byte(reg, val)
             else:
                 print("\nGesture Sensor NOT READY - check connections\n")
+                time.sleep(2)  # Wait a bit longer before proceeding
         except Exception as e:
             print(f"Error initializing sensor: {e}")
 
@@ -506,7 +514,7 @@ if __name__ == '__main__':
         os.makedirs(AUDIO_FILES_DIR, exist_ok=True)
         os.makedirs(NAV_AUDIO_DIR, exist_ok=True)
 
-        # Start scheduler thread for tasks based on info.txt and play tasks 1 and 2 every minute.
+        # Start scheduler thread for tasks and play tasks 1 and 2 every minute.
         scheduler_thread = threading.Thread(target=schedule_tasks, args=(sensor.tasks,))
         scheduler_thread.daemon = True
         scheduler_thread.start()
