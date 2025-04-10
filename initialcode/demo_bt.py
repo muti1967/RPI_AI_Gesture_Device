@@ -761,8 +761,18 @@ except IndexError:
 # Initialize BLE Peripheral
 periph = peripheral.Peripheral(adapter_address=adapter_address, local_name='RPi-BLE')  # Set the local name for the device
 
-# Add BLE service and characteristics
-periph.add_service(my_service)
+# Add BLE service
+service_uuid = '12345678-1234-5678-1234-56789abcdef0'
+periph.add_service(uuid=service_uuid, primary=True)
+
+# Add BLE characteristic
+characteristic_uuid = '12345678-1234-5678-1234-56789abcdef1'
+periph.add_characteristic(service_uuid=service_uuid,
+                          uuid=characteristic_uuid,
+                          value=[0x00],
+                          notifying=False,
+                          flags=['read'],
+                          read_callback=read_callback)
 
 # Modify the main loop to include BLE advertising
 if __name__ == '__main__':
