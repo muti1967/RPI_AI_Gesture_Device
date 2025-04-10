@@ -21,6 +21,8 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import sys
 import select
+from gpiozero import Button
+from bluezero import peripheral
 
 # i2c address
 PAJ7620U2_I2C_ADDRESS = 0x73
@@ -702,7 +704,7 @@ def play_task_1_periodically(sensor):
             except Exception as e:
                 print(f"Error playing {'task 1' if play_task_1 else 'task 2'} audio: {e}")
         else:
-            print(f"{'Task 1' if play_task_1 else 'Task 2'} audio file not found: {current_audio_path}")
+            print(f"{'Task 1' if play_task_1 else 'task 2'} audio file not found: {current_audio_path}")
         
         play_task_1 = not play_task_1  # Alternate between task 1 and task 2
         time.sleep(15)  # Wait for 15 seconds before playing the next audio
@@ -727,6 +729,35 @@ async def scan():
     for device in devices:
         print(device)
 
+# GPIO button setup (physical pin 11 = GPIO17)
+button = Button(17)
+
+# BLE GATT characteristic behavior
+def read_callback():
+    print("iPhone is reading data...")
+    return [0x42]  # Example byte data
+
+def write_callback(value):
+    print(f"Received from iPhone: {value}")
+
+# BLE characteristic and service
+char_uuid = '12345678-1234-5678-1234-56789abcdef1'
+service_uuid = '12345678-1234-5678-1234-56789abcdef0'
+
+my_char = peripheral.Characteristic(char_uuid,
+                                    ['read', 'write'],
+                                    read_callback,
+                                    write_callback)
+
+my_service = peripheral.Service(service_uuid, True)
+my_service.add_characteristic(my_char)
+
+# BLE Peripheral definition
+ble_peripheral = peripheral.Peripheral(adapter_addr=None,
+                                       local_name='RPi-BLE',
+                                       services=[my_service])
+
+# Modify the main loop to include BLE advertising
 if __name__ == '__main__':
     print("\nGesture Sensor Test Program ...")
     print("Keyboard controls:")
@@ -736,12 +767,13 @@ if __name__ == '__main__':
     print("f - Simulate FORWARD gesture")
     print("cc - Simulate COUNTER-CLOCKWISE gesture")
     print("q - Quit program")
-    
+    print("Hold the button to make the device discoverable to an iPhone.")
+
     # Delete existing info.txt to ensure we start fresh
     if os.path.exists(INFO_FILE_PATH):
         print("Removing existing info.txt to ensure fresh start...")
         os.remove(INFO_FILE_PATH)
-    
+
     sensor = PAJ7620U2()
     current_task = 1
 
@@ -773,6 +805,29 @@ if __name__ == '__main__':
         periodic_task_1_thread.daemon = True
         periodic_task_1_thread.start()
 
+        # BLE advertising loop with button hold detection
+        while True:
+            button_pressed_time = 0
+            while button.is_pressed:
+                button_pressed_time += 0.1
+                time.sleep(0.1)
+                if button_pressed_time >= 3:  # Button held for 3 seconds
+                    print("Button held for 3 seconds. Starting BLE advertising...")
+
+                    # Turn on Bluetooth (ensure it's up)
+                    os.system("rfkill unblock bluetooth")
+                    os.system("bluetoothctl power on")
+
+                    # Start advertising
+                    ble_peripheral.publish()
+                    print("BLE advertising...")
+
+                    time.sleep(10)  # BLE stays discoverable for 10 seconds
+
+                    ble_peripheral.unpublish()
+                    print("Stopped BLE advertising.\n")
+                    break
+
     except KeyboardInterrupt:
         print("Exiting program...")
         observer.stop()
@@ -780,7 +835,3 @@ if __name__ == '__main__':
         observer.join()
         print("GPIO cleanup mocked")
         GPIO.cleanup()
-
-    # For testing Bluetooth scanning
-    # import asyncio
-    # asyncio.run(scan())
