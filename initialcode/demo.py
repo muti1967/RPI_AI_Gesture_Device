@@ -687,8 +687,8 @@ def check_button_press():
 
 # Task states
 def play_task_1_periodically(sensor):
-    task_1_audio_path = os.path.join(BASE_DIR, "finalv/audio_files/navaudio/1.mp3")
-    task_2_audio_path = os.path.join(BASE_DIR, "finalv/audio_files/navaudio/2.mp3")
+    task_1_audio_path = os.path.join(BASE_DIR, "finalv/audio_files/1.mp3")
+    task_2_audio_path = os.path.join(BASE_DIR, "finalv/audio_files/2.mp3")
     play_task_1 = True  # Start with task 1
 
     while True:
@@ -705,7 +705,7 @@ def play_task_1_periodically(sensor):
             print(f"{'Task 1' if play_task_1 else 'Task 2'} audio file not found: {current_audio_path}")
         
         play_task_1 = not play_task_1  # Alternate between task 1 and task 2
-        time.sleep(30)  # Wait for 30 seconds before playing the next audio
+        time.sleep(15)  # Wait for 15 seconds before playing the next audio
 
 def enter_editing_state():
     print("Entering Editing State")
