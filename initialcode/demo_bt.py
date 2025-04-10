@@ -281,25 +281,19 @@ class PAJ7620U2(object):
 
     def _simulate_gesture(self, gesture):
         global current_task
-        if gesture == PAJ_LEFT:
-            current_task = max(1, current_task - 1)
-            if 1 <= current_task <= len(self.tasks):
-                task = self.tasks[current_task - 1]
-                print(f"Moving to task[{current_task}] of {len(self.tasks)}")
-                task.play_nav_audio()
-        elif gesture == PAJ_RIGHT:
+        if gesture == PAJ_RIGHT:  # Move up a task
             current_task = min(current_task + 1, len(self.tasks))
             if 1 <= current_task <= len(self.tasks):
                 task = self.tasks[current_task - 1]
                 print(f"Moving to task[{current_task}] of {len(self.tasks)}")
                 task.play_nav_audio()
-        elif gesture == PAJ_DOWN:
+        elif gesture == PAJ_LEFT:  # Move down a task
             current_task = max(1, current_task - 1)
             if 1 <= current_task <= len(self.tasks):
                 task = self.tasks[current_task - 1]
                 print(f"Moving to task[{current_task}] of {len(self.tasks)}")
                 task.play_nav_audio()
-        elif gesture == PAJ_FORWARD:
+        elif gesture == PAJ_FORWARD:  # Play the current task
             if 1 <= current_task <= len(self.tasks):
                 task = self.tasks[current_task - 1]
                 print(f"Playing task[{current_task}] of {len(self.tasks)}")

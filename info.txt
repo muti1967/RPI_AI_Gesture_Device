@@ -1,0 +1,32 @@
+sudo nano /etc/systemd/system/gesture-demo.service
+
+//running script automatically
+[Unit]
+Description=Gesture Reminder Device Demo Script
+After=network.target bluetooth.target
+
+[Service]
+ExecStart=/usr/bin/python3 /home/senior/RPI_AI_Gesture_Device/initialcode/demo.py
+WorkingDirectory=/home/senior/RPI_AI_Gesture_Device/initialcode
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=senior
+
+[Install]
+WantedBy=multi-user.target
+
+
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl enable gesture-demo.service
+
+
+sudo systemctl start gesture-demo.service
+
+
+
+
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl enable gesture-demo.service
