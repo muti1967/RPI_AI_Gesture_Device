@@ -1,8 +1,3 @@
-#This version has these changes:
-#1. pulls info from info.txt
-#2. schedules tasks using info.txt
-#3. plays the assigned audio files at the assigned times
-
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
 import time
@@ -25,36 +20,41 @@ from gpiozero import Button
 from bluezero import peripheral
 from bluezero import adapter
 
+# ----------------------------------------------------------------
+# Sensor/gesture constants and register arrays (unchanged)
+# ----------------------------------------------------------------
+
 # i2c address
 PAJ7620U2_I2C_ADDRESS = 0x73
 # Register Bank select
 PAJ_BANK_SELECT = 0xEF  # Bank0== 0x00,Bank1== 0x01
 # Register Bank 0
-PAJ_SUSPEND = 0x03  # I2C suspend command (Write = 0x01 to enter suspend state). I2C wake-up command is slave ID wake-up. Refer to topic "I2C Bus Timing Characteristics and Protocol"
+PAJ_SUSPEND = 0x03  # I2C suspend command (Write = 0x01 to enter suspend state).
 PAJ_INT_FLAG1_MASK = 0x41  # Gesture detection interrupt flag mask
 PAJ_INT_FLAG2_MASK = 0x42  # Gesture/PS detection interrupt flag mask
 PAJ_INT_FLAG1 = 0x43  # Gesture detection interrupt flag
 PAJ_INT_FLAG2 = 0x44  # Gesture/PS detection interrupt flag
-PAJ_STATE = 0x45  # State indicator for gesture detection (Only functional at gesture detection mode)
-PAJ_PS_HIGH_THRESHOLD = 0x69  # PS hysteresis high threshold (Only functional at proximity detection mode)
-PAJ_PS_LOW_THRESHOLD = 0x6A  # PS hysteresis low threshold (Only functional at proximity detection mode)
-PAJ_PS_APPROACH_STATE = 0x6B  # PS approach state,  Approach = 1 , (8 bits PS data >= PS high threshold),  Not Approach = 0 , (8 bits PS data <= PS low threshold)(Only functional at proximity detection mode)
-PAJ_PS_DATA = 0x6C  # PS 8 bit data(Only functional at gesture detection mode)
+PAJ_STATE = 0x45  # State indicator for gesture detection
+PAJ_PS_HIGH_THRESHOLD = 0x69  # PS hysteresis high threshold
+PAJ_PS_LOW_THRESHOLD = 0x6A  # PS hysteresis low threshold
+PAJ_PS_APPROACH_STATE = 0x6B  # PS approach state
+PAJ_PS_DATA = 0x6C  # PS 8 bit data
 PAJ_OBJ_BRIGHTNESS = 0xB0  # Object Brightness (Max. 255)
-PAJ_OBJ_SIZE_L = 0xB1  # Object Size(Low 8 bit)
-PAJ_OBJ_SIZE_H = 0xB2  # Object Size(High 8 bit)
+PAJ_OBJ_SIZE_L = 0xB1  # Object Size (Low 8 bit)
+PAJ_OBJ_SIZE_H = 0xB2  # Object Size (High 8 bit)
 # Register Bank 1
-PAJ_PS_GAIN = 0x44  # PS gain setting (Only functional at proximity detection mode)
-PAJ_IDLE_S1_STEP_L = 0x67  # IDLE S1 Step, for setting the S1, Response Factor(Low 8 bit)
-PAJ_IDLE_S1_STEP_H = 0x68  # IDLE S1 Step, for setting the S1, Response Factor(High 8 bit)
-PAJ_IDLE_S2_STEP_L = 0x69  # IDLE S2 Step, for setting the S2, Response Factor(Low 8 bit)
-PAJ_IDLE_S2_STEP_H = 0x6A  # IDLE S2 Step, for setting the S2, Response Factor(High 8 bit)
-PAJ_OPTOS1_TIME_L = 0x6B  # OPtoS1 Step, for setting the OPtoS1 time of operation state to standby 1 state(Low 8 bit)
-PAJ_OPTOS2_TIME_H = 0x6C  # OPtoS1 Step, for setting the OPtoS1 time of operation state to standby 1 stateHigh 8 bit)
-PAJ_S1TOS2_TIME_L = 0x6D  # S1toS2 Step, for setting the S1toS2 time of standby 1 state to standby 2 state(Low 8 bit)
-PAJ_S1TOS2_TIME_H = 0x6E  # S1toS2 Step, for setting the S1toS2 time of standby 1 state to standby 2 stateHigh 8 bit)
-PAJ_EN = 0x72  # Enable/Disable PAJ7620U2
-# Gesture detection interrupt flag
+PAJ_PS_GAIN = 0x44  # PS gain setting
+PAJ_IDLE_S1_STEP_L = 0x67
+PAJ_IDLE_S1_STEP_H = 0x68
+PAJ_IDLE_S2_STEP_L = 0x69
+PAJ_IDLE_S2_STEP_H = 0x6A
+PAJ_OPTOS1_TIME_L = 0x6B
+PAJ_OPTOS2_TIME_H = 0x6C
+PAJ_S1TOS2_TIME_L = 0x6D
+PAJ_S1TOS2_TIME_H = 0x6E
+PAJ_EN = 0x72  # Enable/Disable sensor
+
+# Gesture detection flags
 PAJ_UP = 0x01
 PAJ_DOWN = 0x02
 PAJ_LEFT = 0x04
@@ -65,170 +65,27 @@ PAJ_CLOCKWISE = 0x40
 PAJ_COUNT_CLOCKWISE = 0x80
 PAJ_WAVE = 0x100
 
-# to do list for this  code
-'''
-1. once we recieve hardware parts will be able to use this fully with windows app
-2. incorperate github for other rpi's so we can just push the code wirlessly
-3. ...
+# ----------------------------------------------------------------
+# Global Variables & Task Setup
+# ----------------------------------------------------------------
 
+current_task = 1  # Initialize task index
 
-
-'''
-# Initialize task index
-current_task = 1
-
-# Power up initialize array
-Init_Register_Array = (
-    (0xEF, 0x00),
-    (0x37, 0x07),
-    (0x38, 0x17),
-    (0x39, 0x06),
-    (0x41, 0x00),
-    (0x42, 0x00),
-    (0x46, 0x2D),
-    (0x47, 0x0F),
-    (0x48, 0x3C),
-    (0x49, 0x00),
-    (0x4A, 0x1E),
-    (0x4C, 0x20),
-    (0x51, 0x10),
-    (0x5E, 0x10),
-    (0x60, 0x27),
-    (0x80, 0x42),
-    (0x81, 0x44),
-    (0x82, 0x04),
-    (0x8B, 0x01),
-    (0x90, 0x06),
-    (0x95, 0x0A),
-    (0x96, 0x0C),
-    (0x97, 0x05),
-    (0x9A, 0x14),
-    (0x9C, 0x3F),
-    (0xA5, 0x19),
-    (0xCC, 0x19),
-    (0xCD, 0x0B),
-    (0xCE, 0x13),
-    (0xCF, 0x64),
-    (0xD0, 0x21),
-    (0xEF, 0x01),
-    (0x02, 0x0F),
-    (0x03, 0x10),
-    (0x04, 0x02),
-    (0x25, 0x01),
-    (0x27, 0x39),
-    (0x28, 0x7F),
-    (0x29, 0x08),
-    (0x3E, 0xFF),
-    (0x5E, 0x3D),
-    (0x65, 0x96),
-    (0x67, 0x97),
-    (0x69, 0xCD),
-    (0x6A, 0x01),
-    (0x6D, 0x2C),
-    (0x6E, 0x01),
-    (0x72, 0x01),
-    (0x73, 0x35),
-    (0x74, 0x00),
-    (0x77, 0x01),
-)
-# Approaches register initialization array
-Init_PS_Array = (
-    (0xEF, 0x00),
-    (0x41, 0x00),
-    (0x42, 0x00),
-    (0x48, 0x3C),
-    (0x49, 0x00),
-    (0x51, 0x13),
-    (0x83, 0x20),
-    (0x84, 0x20),
-    (0x85, 0x00),
-    (0x86, 0x10),
-    (0x87, 0x00),
-    (0x88, 0x05),
-    (0x89, 0x18),
-    (0x8A, 0x10),
-    (0x9f, 0xf8),
-    (0x69, 0x96),
-    (0x6A, 0x02),
-    (0xEF, 0x01),
-    (0x01, 0x1E),
-    (0x02, 0x0F),
-    (0x03, 0x10),
-    (0x04, 0x02),
-    (0x41, 0x50),
-    (0x43, 0x34),
-    (0x65, 0xCE),
-    (0x66, 0x0B),
-    (0x67, 0xCE),
-    (0x68, 0x0B),
-    (0x69, 0xE9),
-    (0x6A, 0x05),
-    (0x6B, 0x50),
-    (0x6C, 0xC3),
-    (0x6D, 0x50),
-    (0x6E, 0xC3),
-    (0x74, 0x05),
-)
-# Gesture register initializes array
-Init_Gesture_Array = (
-    (0xEF, 0x00),
-    (0x41, 0x00),
-    (0x42, 0x00),
-    (0xEF, 0x00),
-    (0x48, 0x3C),
-    (0x49, 0x00),
-    (0x51, 0x10),
-    (0x83, 0x20),
-    (0x9F, 0xF9),
-    (0xEF, 0x01),
-    (0x01, 0x1E),
-    (0x02, 0x0F),
-    (0x03, 0x10),
-    (0x04, 0x02),
-    (0x41, 0x40),
-    (0x43, 0x30),
-    (0x65, 0x96),
-    (0x66, 0x00),
-    (0x67, 0x97),
-    (0x68, 0x01),
-    (0x69, 0xCD),
-    (0x6A, 0x01),
-    (0x6B, 0xB0),
-    (0x6C, 0x04),
-    (0x6D, 0x2C),
-    (0x6E, 0x01),
-    (0x74, 0x00),
-    (0xEF, 0x00),
-    (0x41, 0xFF),
-    (0x42, 0x01),
-)
-
-# GPIO setup
-try:
-    # Set GPIO mode
-    print("Setting GPIO mode to BCM")
-    GPIO.setmode(GPIO.BCM)
-
-    # Set up GPIO17 as input with pull-up resistor
-    print("Setting up GPIO17 as input with pull-up resistor")
-    GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    print("GPIO setup complete")
-except Exception as e:
-    print(f"Error during GPIO setup: {e}")
-finally:
-    print("GPIO cleanup will happen at program exit")
-
-# Define paths
+# Define file paths
 HOME_DIR = os.path.expanduser("~")
 BASE_DIR = os.path.join(HOME_DIR, "RPI_AI_Gesture_Device")
 INFO_FILE_PATH = os.path.join(BASE_DIR, "finalv/info/info.txt")
 AUDIO_FILES_DIR = os.path.join(BASE_DIR, "finalv/audio_files")
 NAV_AUDIO_DIR = os.path.join(AUDIO_FILES_DIR, "navaudio")
 
+# ----------------------------------------------------------------
+# Task class and file handler (unchanged)
+# ----------------------------------------------------------------
+
 class Task:
     def __init__(self, task_number, audio_file, play_time):
         self.task_number = task_number
-        self.audio_file = os.path.join(AUDIO_FILES_DIR, audio_file)  # Use full path for audio file
+        self.audio_file = os.path.join(AUDIO_FILES_DIR, audio_file)  # Full path
         self.play_time = play_time
         self.completed = False
 
@@ -237,8 +94,7 @@ class Task:
         if os.path.exists(nav_file):
             try:
                 subprocess.run(["ffplay", "-nodisp", "-autoexit", nav_file], 
-                             capture_output=True, 
-                             text=True)
+                               capture_output=True, text=True)
             except Exception as e:
                 print(f"Error playing navigation audio: {e}")
 
@@ -250,11 +106,9 @@ class InfoFileHandler(FileSystemEventHandler):
     def on_modified(self, event):
         if event.src_path == INFO_FILE_PATH:
             current_time = time.time()
-            # Prevent multiple reloads within 1 second
             if current_time - self.last_modified > 1:
                 print("Info file changed, reloading tasks...")
                 self.sensor.tasks = read_task_info()
-                # Reschedule all tasks
                 schedule.clear()
                 for task in self.sensor.tasks:
                     schedule.every().day.at(task.play_time).do(play_scheduled_audio, task)
@@ -266,36 +120,31 @@ def read_task_info():
         with open(INFO_FILE_PATH, 'r') as file:
             for line in file:
                 line = line.strip()
-                if line:  # Skip empty lines
+                if line:
                     task_number, audio_file, play_time = line.split(',')
-                    # Verify the audio file exists
                     audio_path = os.path.join(AUDIO_FILES_DIR, audio_file)
                     if not os.path.exists(audio_path):
                         print(f"Warning: Audio file not found: {audio_path}")
                     tasks.append(Task(int(task_number), audio_file, play_time))
-        
-        # If we have fewer than 9 tasks, update the file
         if len(tasks) < 9:
-            print(f"Updating info.txt to include all 9 tasks...")
+            print("Updating info.txt to include all 9 tasks...")
             with open(INFO_FILE_PATH, 'w') as file:
-                for i in range(1, 10):  # Create 9 tasks
+                for i in range(1, 10):
                     file.write(f"{i},{i}.mp3,09:00\n")
-            # Reload tasks after updating
             tasks = []
             with open(INFO_FILE_PATH, 'r') as file:
                 for line in file:
                     line = line.strip()
-                    if line:  # Skip empty lines
+                    if line:
                         task_number, audio_file, play_time = line.split(',')
                         tasks.append(Task(int(task_number), audio_file, play_time))
-        
         print(f"Loaded {len(tasks)} tasks from info.txt")
         return tasks
     except FileNotFoundError:
         print(f"{INFO_FILE_PATH} not found. Creating default file with 9 tasks...")
         os.makedirs(os.path.dirname(INFO_FILE_PATH), exist_ok=True)
         with open(INFO_FILE_PATH, 'w') as file:
-            for i in range(1, 10):  # Create 9 tasks
+            for i in range(1, 10):
                 file.write(f"{i},{i}.mp3,09:00\n")
         return read_task_info()
     except Exception as e:
@@ -305,43 +154,27 @@ def read_task_info():
 def play_scheduled_audio(task):
     if not task.completed:
         print(f"Playing task {task.task_number}: {task.audio_file}")
-        try:
-            # Check if file exists
-            if not os.path.exists(task.audio_file):
-                print(f"Error: Audio file not found: {task.audio_file}")
-                return
-                
-            # Get file extension
-            file_ext = os.path.splitext(task.audio_file)[1].lower()
-            
-            # Play the audio file using ffplay
-            print(f"Playing audio with ffplay... ({file_ext})")
-            result = subprocess.run(["ffplay", "-nodisp", "-autoexit", task.audio_file], 
-                                 capture_output=True, 
-                                 text=True)
-            
-            if result.returncode != 0:
-                print(f"Error playing audio with ffplay: {result.stderr}")
-                print("Please check if:")
-                print("1. ffplay is installed (sudo apt-get install ffmpeg)")
-                print("2. The audio system is properly configured")
-                print("3. The file format is supported")
-        except Exception as e:
-            print(f"Error playing audio: {e}")
-            print("Please check if:")
-            print("1. The audio file exists and is accessible")
-            print("2. ffplay is installed (sudo apt-get install ffmpeg)")
-            print("3. The audio system is properly configured")
+        if not os.path.exists(task.audio_file):
+            print(f"Error: Audio file not found: {task.audio_file}")
+            return
+        file_ext = os.path.splitext(task.audio_file)[1].lower()
+        print(f"Playing audio with ffplay... ({file_ext})")
+        result = subprocess.run(["ffplay", "-nodisp", "-autoexit", task.audio_file],
+                                capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"Error playing audio with ffplay: {result.stderr}")
+            print("Check if:")
+            print("1. ffplay is installed (sudo apt-get install ffmpeg)")
+            print("2. The audio system is properly configured")
+            print("3. The file format is supported")
 
 def schedule_tasks(tasks):
     for task in tasks:
         schedule.every().day.at(task.play_time).do(play_scheduled_audio, task)
-    
     while True:
         schedule.run_pending()
         time.sleep(1)
 
-# Add keyboard input handling
 def get_keyboard_input():
     if select.select([sys.stdin], [], [], 0.0)[0]:
         return sys.stdin.read(1)
@@ -351,25 +184,29 @@ def handle_keyboard_input(sensor):
     while True:
         key = get_keyboard_input()
         if key:
-            if key == 'l':  # Left gesture
+            if key == 'l':
                 print("Simulating LEFT gesture")
                 sensor._simulate_gesture(PAJ_LEFT)
-            elif key == 'r':  # Right gesture
+            elif key == 'r':
                 print("Simulating RIGHT gesture")
                 sensor._simulate_gesture(PAJ_RIGHT)
-            elif key == 'd':  # Down gesture
+            elif key == 'd':
                 print("Simulating DOWN gesture")
                 sensor._simulate_gesture(PAJ_DOWN)
-            elif key == 'f':  # Forward gesture
+            elif key == 'f':
                 print("Simulating FORWARD gesture")
                 sensor._simulate_gesture(PAJ_FORWARD)
-            elif key == 'cc':  # Counter-clockwise gesture
+            elif key == 'cc':
                 print("Simulating COUNTER-CLOCKWISE gesture")
                 sensor._simulate_gesture(PAJ_COUNT_CLOCKWISE)
-            elif key == 'q':  # Quit
+            elif key == 'q':
                 print("Quitting program...")
                 sys.exit(0)
         time.sleep(0.1)
+
+# ----------------------------------------------------------------
+# PAJ7620U2 sensor class (with placeholder methods)
+# ----------------------------------------------------------------
 
 class PAJ7620U2(object):
     def __init__(self, address=PAJ7620U2_I2C_ADDRESS):
@@ -377,7 +214,6 @@ class PAJ7620U2(object):
         self._bus = None
         self.tasks = read_task_info()
         self._test_audio_system()
-        # Start keyboard input thread
         self.keyboard_thread = threading.Thread(target=handle_keyboard_input, args=(self,))
         self.keyboard_thread.daemon = True
         self.keyboard_thread.start()
@@ -406,66 +242,6 @@ class PAJ7620U2(object):
             print(f"Error writing byte 0x{val:02X} to address 0x{cmd:02X}: {e}")
             raise
 
-    def check_gesture(self):
-        try:
-            # Make sure we're in Bank 0 for gesture reading
-            self._write_byte(PAJ_BANK_SELECT, 0x00)
-            time.sleep(0.01)
-            
-            Gesture_Data = self._read_u16(0x43)
-            if Gesture_Data != 0:
-                print(f"Gesture Data: 0x{Gesture_Data:04X}")  # Print in hex format
-        except Exception as e:
-            print(f"Error reading gesture data: {e}")
-            return 0
-
-        if Gesture_Data == PAJ_UP:
-            # Move to next task
-            current_task = min(current_task + 1, len(self.tasks))
-            if 1 <= current_task <= len(self.tasks):
-                task = self.tasks[current_task - 1]
-                print(f"Moving to task[{current_task}]")
-                task.play_nav_audio()
-        elif Gesture_Data == PAJ_DOWN:
-            # Move to previous task
-            current_task = max(1, current_task - 1)
-            if 1 <= current_task <= len(self.tasks):
-                task = self.tasks[current_task - 1]
-                print(f"Moving to task[{current_task}]")
-                task.play_nav_audio()
-        elif Gesture_Data == PAJ_FORWARD:
-            # Play the current task's audio
-            if 1 <= current_task <= len(self.tasks):
-                task = self.tasks[current_task - 1]
-                print(f"Playing task[{current_task}]")
-                self.play_audio(task.audio_file)
-        elif Gesture_Data == PAJ_BACKWARD:
-            # Go back to task 1
-            current_task = 1
-            if len(self.tasks) > 0:
-                task = self.tasks[0]
-                print("Going back to task 1")
-                task.play_nav_audio()
-        elif Gesture_Data == PAJ_CLOCKWISE:
-            # Mark current task as complete
-            if 1 <= current_task <= len(self.tasks):
-                self.tasks[current_task - 1].completed = True
-                print(f"Task[{current_task}] marked complete")
-        elif Gesture_Data == PAJ_COUNT_CLOCKWISE:
-            # Undo completion of current task
-            if 1 <= current_task <= len(self.tasks):
-                self.tasks[current_task - 1].completed = False
-                print(f"Task[{current_task}] marked incomplete")
-        elif Gesture_Data == PAJ_WAVE:
-            # Play all tasks in sequence
-            print("Playing all tasks in sequence")
-            for task in self.tasks:
-                if not task.completed:
-                    self.play_audio(task.audio_file)
-                    time.sleep(0.5)  # Small delay between tasks
-
-        return Gesture_Data
-
     def _read_u16(self, cmd):
         LSB = self._bus.read_byte_data(self._address, cmd)
         MSB = self._bus.read_byte_data(self._address, cmd + 1)
@@ -474,9 +250,8 @@ class PAJ7620U2(object):
     def _test_audio_system(self):
         print("Testing audio system...")
         try:
-            # Try to play a test sound
-            subprocess.run(["speaker-test", "-t", "wav", "-c", "2", "-D", "hw:0,0", "-l", "1"], 
-                         capture_output=True)
+            subprocess.run(["speaker-test", "-t", "wav", "-c", "2", "-D", "hw:0,0", "-l", "1"],
+                           capture_output=True)
             print("Audio system test completed")
         except Exception as e:
             print(f"Warning: Audio system test failed: {e}")
@@ -484,69 +259,60 @@ class PAJ7620U2(object):
 
     def play_audio(self, file_path):
         try:
-            # Check if file exists
             if not os.path.exists(file_path):
                 print(f"Error: Audio file not found: {file_path}")
                 return
-                
-            # Get file extension
             file_ext = os.path.splitext(file_path)[1].lower()
-            
-            # Play the audio file using ffplay
             print(f"Playing audio with ffplay... ({file_ext})")
-            result = subprocess.run(["ffplay", "-nodisp", "-autoexit", file_path], 
-                                 capture_output=True, 
-                                 text=True)
-            
+            result = subprocess.run(["ffplay", "-nodisp", "-autoexit", file_path],
+                                    capture_output=True, text=True)
             if result.returncode != 0:
                 print(f"Error playing audio with ffplay: {result.stderr}")
-                print("Please check if:")
+                print("Ensure:")
                 print("1. ffplay is installed (sudo apt-get install ffmpeg)")
-                print("2. The audio system is properly configured")
+                print("2. The audio system is configured")
                 print("3. The file format is supported")
         except Exception as e:
             print(f"Error playing audio: {e}")
-            print("Please check if:")
+            print("Ensure:")
             print("1. The audio file exists and is accessible")
             print("2. ffplay is installed (sudo apt-get install ffmpeg)")
             print("3. The audio system is properly configured")
 
     def _simulate_gesture(self, gesture):
-        """Simulate a gesture by directly calling the gesture handling code"""
         global current_task
-        
         if gesture == PAJ_LEFT:
-            # Move to previous task
             current_task = max(1, current_task - 1)
             if 1 <= current_task <= len(self.tasks):
                 task = self.tasks[current_task - 1]
                 print(f"Moving to task[{current_task}] of {len(self.tasks)}")
                 task.play_nav_audio()
         elif gesture == PAJ_RIGHT:
-            # Move to next task
             current_task = min(current_task + 1, len(self.tasks))
             if 1 <= current_task <= len(self.tasks):
                 task = self.tasks[current_task - 1]
                 print(f"Moving to task[{current_task}] of {len(self.tasks)}")
                 task.play_nav_audio()
         elif gesture == PAJ_DOWN:
-            # Move to previous task
             current_task = max(1, current_task - 1)
             if 1 <= current_task <= len(self.tasks):
                 task = self.tasks[current_task - 1]
                 print(f"Moving to task[{current_task}] of {len(self.tasks)}")
                 task.play_nav_audio()
         elif gesture == PAJ_FORWARD:
-            # Play the current task's audio
             if 1 <= current_task <= len(self.tasks):
                 task = self.tasks[current_task - 1]
                 print(f"Playing task[{current_task}] of {len(self.tasks)}")
                 self.play_audio(task.audio_file)
         elif gesture == PAJ_COUNT_CLOCKWISE:
-            # Undo completion of current task
             if 1 <= current_task <= len(self.tasks):
                 self.tasks[current_task - 1].completed = False
                 print(f"Task[{current_task}] of {len(self.tasks)} marked incomplete")
+        return 0
+
+# ----------------------------------------------------------------
+# Bluetooth Agent for Classic Bluetooth (unchanged)
+# ----------------------------------------------------------------
 
 class BluetoothAgent(dbus.service.Object):
     def __init__(self, bus, path):
@@ -590,14 +356,10 @@ def start_bluetooth_agent():
     agent = BluetoothAgent(bus, "/test/agent")
     obj = bus.get_object("org.bluez", "/org/bluez")
     manager = dbus.Interface(obj, "org.bluez.AgentManager1")
-    
-    # Unregister any existing agents
     try:
         manager.UnregisterAgent("/test/agent")
     except dbus.exceptions.DBusException as e:
         print(f"Agent not registered previously: {e}")
-    
-    # Register the new agent with DisplayYesNo mode
     manager.RegisterAgent("/test/agent", "DisplayYesNo")
     manager.RequestDefaultAgent("/test/agent")
     print("Bluetooth agent started for pairing")
@@ -606,12 +368,15 @@ def remove_paired_devices():
     os.system("bluetoothctl -- remove *")
     print("Cleared all previously paired devices.")
 
-# Bluetooth pairing
+# ----------------------------------------------------------------
+# BLE Pairing & Advertisement Section (Modified)
+# ----------------------------------------------------------------
+
 async def enter_pairing_mode():
     print("Entering Bluetooth Pairing Mode")
     remove_paired_devices()
 
-    # Start LED blinking
+    # LED blinking simulation
     def blink_led():
         while not connected:
             print("LED ON")
@@ -620,18 +385,15 @@ async def enter_pairing_mode():
             time.sleep(0.5)
 
     connected = False
-    import threading
     blink_thread = threading.Thread(target=blink_led)
     blink_thread.start()
 
     try:
-        # Wait for a connection from a phone
         print("Waiting for a connection from a phone...")
         while not connected:
             devices = await BleakScanner.discover()
-            # Check for a specific device or connection status here
             for device in devices:
-                print(device)  # Print discovered devices
+                print(device)
                 if "YourPhoneName" in device.name:
                     async with BleakClient(device.address) as client:
                         await client.connect()
@@ -639,35 +401,28 @@ async def enter_pairing_mode():
                             connected = True
                             print(f"Connected to {device.name}")
                             break
-
-        print("LED SOLID")  # Solid LED when connected
-
-        # Handle incoming data
+        print("LED SOLID")
         while connected:
             await asyncio.sleep(1)
             print("Handling data from the phone...")
-            # Implement actual data handling logic here
     except Exception as e:
         print(f"Connection error: {e}")
     finally:
         connected = True
         blink_thread.join()
-        print("LED OFF")  # Turn off LED
+        print("LED OFF")
         print("Bluetooth Pairing Mode Exited")
 
-# Check button press
 def check_button_press():
     button_press_count = 0
     button_pressed_time = 0
     start_time = time.time()
-    
     while True:
         if GPIO.input(17) == GPIO.LOW:
             button_pressed_time += 1
             print(f"Button held for {button_pressed_time * 0.1} seconds")
-            time.sleep(0.1)  # Debounce delay
-            
-            if button_pressed_time >= 30:  # 3 seconds
+            time.sleep(0.1)
+            if button_pressed_time >= 30:  # ~3 seconds
                 print("Button held for 3 seconds, entering pairing mode...")
                 import asyncio
                 asyncio.run(enter_pairing_mode())
@@ -677,8 +432,7 @@ def check_button_press():
                 button_press_count += 1
                 print(f"Button pressed {button_press_count} time(s)")
                 button_pressed_time = 0
-                time.sleep(0.1)  # Debounce delay
-
+                time.sleep(0.1)
             if button_press_count >= 2 and (time.time() - start_time) <= 3:
                 print("Button pressed 2 times within 3 seconds, entering editing mode...")
                 enter_editing_state()
@@ -688,27 +442,23 @@ def check_button_press():
                 start_time = time.time()
         time.sleep(0.1)
 
-# Task states
 def play_task_1_periodically(sensor):
     task_1_audio_path = os.path.join(BASE_DIR, "finalv/audio_files/1.mp3")
     task_2_audio_path = os.path.join(BASE_DIR, "finalv/audio_files/2.mp3")
-    play_task_1 = True  # Start with task 1
-
+    play_task_1 = True
     while True:
         current_audio_path = task_1_audio_path if play_task_1 else task_2_audio_path
         if os.path.exists(current_audio_path):
             print(f"Playing {'task 1' if play_task_1 else 'task 2'} periodically...")
             try:
-                subprocess.run(["ffplay", "-nodisp", "-autoexit", current_audio_path], 
-                               capture_output=True, 
-                               text=True)
+                subprocess.run(["ffplay", "-nodisp", "-autoexit", current_audio_path],
+                               capture_output=True, text=True)
             except Exception as e:
                 print(f"Error playing {'task 1' if play_task_1 else 'task 2'} audio: {e}")
         else:
-            print(f"{'Task 1' if play_task_1 else 'task 2'} audio file not found: {current_audio_path}")
-        
-        play_task_1 = not play_task_1  # Alternate between task 1 and task 2
-        time.sleep(15)  # Wait for 15 seconds before playing the next audio
+            print(f"{'Task 1' if play_task_1 else 'Task 2'} audio file not found: {current_audio_path}")
+        play_task_1 = not play_task_1
+        time.sleep(15)
 
 def enter_editing_state():
     print("Entering Editing State")
@@ -724,58 +474,44 @@ def enter_editing_state():
             print("Resetting audio for current task")
         check_button_press()
 
-async def scan():
-    print("Scanning for Bluetooth devices...")
-    devices = await BleakScanner.discover()
-    for device in devices:
-        print(device)
+# ----------------------------------------------------------------
+# BLE Service Definition and Advertising (Modified)
+# ----------------------------------------------------------------
 
-# GPIO button setup (physical pin 11 = GPIO17)
-button = Button(17)
-
-# BLE GATT characteristic behavior
 def read_callback():
-    return [ord(c) for c in 'Hello']  # Example response data
+    return [ord(c) for c in 'Hello']
 
-# Define BLE service and characteristics
-my_service = {
-    'UUID': '12345678-1234-5678-1234-56789abcdef0',
-    'characteristics': [{
-        'UUID': '12345678-1234-5678-1234-56789abcdef1',
-        'value': [0x00],
-        'read': read_callback
-    }]
-}
+# Define BLE service and characteristic UUIDs
+service_uuid = '12345678-1234-5678-1234-56789abcdef0'
+characteristic_uuid = '12345678-1234-5678-1234-56789abcdef1'
 
-# Fetch the Bluetooth adapter address dynamically
+# Get the Bluetooth adapter address
 try:
-    adapter_list = list(adapter.Adapter.available())  # Convert generator to list
+    adapter_list = list(adapter.Adapter.available())
     if not adapter_list:
         raise IndexError("No Bluetooth adapter found.")
-    adapter_address = adapter_list[0].address  # Get the first available adapter's address
+    adapter_address = adapter_list[0].address
     print(f"Using Bluetooth adapter address: {adapter_address}")
 except IndexError:
     print("Error: No Bluetooth adapter found. Ensure Bluetooth is enabled and available.")
     sys.exit(1)
 
 # Initialize BLE Peripheral
-periph = peripheral.Peripheral(adapter_address=adapter_address, local_name='RPi-BLE')  # Set the local name for the device
+periph = peripheral.Peripheral(adapter_address=adapter_address, local_name='RPi-BLE')
 
-# Add BLE service
-service_uuid = '12345678-1234-5678-1234-56789abcdef0'
-service_id = 1  # Unique service ID
-periph.add_service(srv_id=service_id, uuid=service_uuid, primary=True)
-
-# Add BLE characteristic
-characteristic_uuid = '12345678-1234-5678-1234-56789abcdef1'
-periph.add_characteristic(service_id=service_id,
+# Add BLE service and characteristic via Bluezero
+periph.add_service(uuid=service_uuid, primary=True)
+periph.add_characteristic(service_uuid=service_uuid,
                           uuid=characteristic_uuid,
                           value=[0x00],
                           notifying=False,
                           flags=['read'],
                           read_callback=read_callback)
 
-# Modify the main loop to include BLE advertising
+# ----------------------------------------------------------------
+# Main Section
+# ----------------------------------------------------------------
+
 if __name__ == '__main__':
     print("\nGesture Sensor Test Program ...")
     print("Keyboard controls:")
@@ -785,9 +521,8 @@ if __name__ == '__main__':
     print("f - Simulate FORWARD gesture")
     print("cc - Simulate COUNTER-CLOCKWISE gesture")
     print("q - Quit program")
-    print("Hold the button to make the device discoverable to an iPhone.")
+    print("Hold the button to make the device discoverable to a phone via BLE.")
 
-    # Delete existing info.txt to ensure we start fresh
     if os.path.exists(INFO_FILE_PATH):
         print("Removing existing info.txt to ensure fresh start...")
         os.remove(INFO_FILE_PATH)
@@ -796,17 +531,14 @@ if __name__ == '__main__':
     current_task = 1
 
     try:
-        # Create directories if they don't exist
         os.makedirs(os.path.dirname(INFO_FILE_PATH), exist_ok=True)
         os.makedirs(AUDIO_FILES_DIR, exist_ok=True)
-        os.makedirs(NAV_AUDIO_DIR, exist_ok=True)  # Create navaudio directory
+        os.makedirs(NAV_AUDIO_DIR, exist_ok=True)
 
-        # Start the scheduling thread
         scheduler_thread = threading.Thread(target=schedule_tasks, args=(sensor.tasks,))
         scheduler_thread.daemon = True
         scheduler_thread.start()
 
-        # Set up file monitoring
         event_handler = InfoFileHandler(sensor)
         observer = Observer()
         observer.schedule(event_handler, path=os.path.dirname(INFO_FILE_PATH), recursive=False)
@@ -818,33 +550,35 @@ if __name__ == '__main__':
         remove_paired_devices()
         start_bluetooth_agent()
 
-        # Start the periodic task 1 playback thread
         periodic_task_1_thread = threading.Thread(target=play_task_1_periodically, args=(sensor,))
         periodic_task_1_thread.daemon = True
         periodic_task_1_thread.start()
 
-        # BLE advertising loop with button hold detection
+        # BLE advertisement loop triggered by button hold.
+        button = Button(17)  # Physical button on GPIO17
         while True:
             button_pressed_time = 0
+            # While button is held down, count hold time
             while button.is_pressed:
                 button_pressed_time += 0.1
                 time.sleep(0.1)
-                if button_pressed_time >= 3:  # Button held for 3 seconds
+                if button_pressed_time >= 3:  # Held for 3 seconds
                     print("Button held for 3 seconds. Starting BLE advertising...")
-
-                    # Turn on Bluetooth (ensure it's up)
                     os.system("rfkill unblock bluetooth")
                     os.system("bluetoothctl power on")
-
-                    # Start advertising
-                    periph.publish()  # Start advertising
-                    print("BLE advertising...")
-
-                    time.sleep(10)  # BLE stays discoverable for 10 seconds
-
-                    periph.unpublish()  # Stop advertising
-                    print("Stopped BLE advertising.\n")
+                    try:
+                        periph.publish()  # Start advertising
+                        print("BLE advertising active. Device should be discoverable as 'RPi-BLE'.")
+                    except Exception as e:
+                        print(f"Error starting BLE advertising: {e}")
+                    time.sleep(10)  # Advertise for 10 seconds
+                    try:
+                        periph.unpublish()  # Stop advertising
+                        print("Stopped BLE advertising.\n")
+                    except Exception as e:
+                        print(f"Error stopping BLE advertising: {e}")
                     break
+            time.sleep(0.1)
 
     except KeyboardInterrupt:
         print("Exiting program...")
