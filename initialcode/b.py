@@ -96,11 +96,39 @@ Init_Gesture_Array = (
 # ----------------------------------------------------------------
 
 current_task = 1
-HOME_DIR = "/home/senior"  # Hardcode to ensure correct paths when running with sudo
+HOME_DIR = "/home/senior"  # Hardcoded for correct paths under sudo
 BASE_DIR = os.path.join(HOME_DIR, "RPI_AI_Gesture_Device")
 INFO_FILE_PATH = os.path.join(BASE_DIR, "finalv/info/info.txt")
 AUDIO_FILES_DIR = os.path.join(BASE_DIR, "finalv/audio_files")
 NAV_AUDIO_DIR = os.path.join(AUDIO_FILES_DIR, "navaudio")
+
+# ----------------------------------------------------------------
+# Additional Audio Helper Functions
+# ----------------------------------------------------------------
+
+def play_bootup_sound():
+    file_bootup = os.path.join(NAV_AUDIO_DIR, "bootup.mp3")
+    if os.path.exists(file_bootup):
+        print("Playing bootup sound...")
+        try:
+            subprocess.run(["ffplay", "-nodisp", "-autoexit", file_bootup],
+                           capture_output=True, text=True)
+        except Exception as e:
+            print(f"Error playing bootup sound: {e}")
+    else:
+        print("Bootup file not found:", file_bootup)
+
+def play_upload_confirmation():
+    file_confirm = os.path.join(NAV_AUDIO_DIR, "upload_conformation.mp3")
+    if os.path.exists(file_confirm):
+        print("Playing upload confirmation sound...")
+        try:
+            subprocess.run(["ffplay", "-nodisp", "-autoexit", file_confirm],
+                           capture_output=True, text=True)
+        except Exception as e:
+            print(f"Error playing upload confirmation: {e}")
+    else:
+        print("Upload confirmation file not found:", file_confirm)
 
 # ----------------------------------------------------------------
 # Task Class and File Handler
@@ -109,7 +137,7 @@ NAV_AUDIO_DIR = os.path.join(AUDIO_FILES_DIR, "navaudio")
 class Task:
     def __init__(self, task_number, audio_file, play_time):
         self.task_number = task_number
-        self.audio_file = os.path.join(AUDIO_FILES_DIR, audio_file)
+        self.audio_file = os.path.join(AUDIO_FILES_DIR, audio_file)  # Full path
         self.play_time = play_time
         self.completed = False
 
@@ -136,7 +164,7 @@ class InfoFileHandler(FileSystemEventHandler):
                 schedule.clear()
                 for task in self.sensor.tasks:
                     schedule.every().day.at(task.play_time).do(play_scheduled_audio, task)
-                # Schedule playing tasks 1 and 2 every minute.
+                # Schedule the task one-two playback every minute.
                 schedule.every(1).minute.do(play_task_one_two)
                 self.last_modified = current_time
 
@@ -418,6 +446,8 @@ async def enter_pairing_mode():
                         if client.is_connected:
                             connected = True
                             print(f"Connected to {device.name}")
+                            # Play upload confirmation sound upon receiving audio (simulate here)
+                            play_upload_confirmation()
                             break
         print("LED SOLID")
         while connected:
@@ -480,7 +510,6 @@ periph.add_characteristic(1, 1, characteristic_uuid,
 # BLE Advertising via Button Hold (Using gpiozero)
 # ----------------------------------------------------------------
 
-# Use GPIO27 for the button (rewire your physical button accordingly)
 def advertise_ble():
     print("Button held for 3 seconds. Starting BLE advertising...")
     os.system("rfkill unblock bluetooth")
@@ -494,6 +523,7 @@ def advertise_ble():
     except Exception as e:
         print(f"Error during BLE advertising: {e}")
 
+# Use GPIO27 for the button to avoid conflicts.
 ble_button = Button(27, pull_up=True, hold_time=3)
 ble_button.when_held = advertise_ble
 
@@ -509,6 +539,9 @@ if __name__ == '__main__':
         os.remove(INFO_FILE_PATH)
     sensor = PAJ7620U2()
     current_task = 1
+
+    # Play bootup sound once at startup.
+    play_bootup_sound()
 
     try:
         os.makedirs(os.path.dirname(INFO_FILE_PATH), exist_ok=True)
