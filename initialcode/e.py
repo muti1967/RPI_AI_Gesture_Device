@@ -322,7 +322,7 @@ def play_scheduled_audio(task):
             return
         try:
             subprocess.run(["ffplay", "-nodisp", "-autoexit", task.audio_file],
-                           capture_output=True, text=True)
+                           stderr=subprocess.PIPE, text=True)  # Fixed argument issue
         except Exception as e:
             print(f"Error playing audio: {e}")
 
@@ -364,14 +364,27 @@ def schedule_tasks(tasks):
 class PAJ7620U2(object):
     def __init__(self, address=PAJ7620U2_I2C_ADDRESS):
         self._address = address
-        # Ensure the gesture sensor pin is set to LOW during initialization
         GPIO.output(GESTURE_SENSOR_PIN, GPIO.LOW)
         self._bus = smbus.SMBus(1)
         self.tasks = read_task_info()
+        self._verify_i2c_bus()  # Verify I²C bus before initializing
         self._initialize_sensor()
 
+    def _verify_i2c_bus(self):
+        try:
+            devices = subprocess.check_output(["i2cdetect", "-y", "1"], text=True)
+            if f"{self._address:02x}" not in devices:
+                print(f"Error: Gesture sensor not detected at address 0x{self._address:02x}.")
+                print("Check the wiring and ensure the sensor is powered.")
+                sys.exit(1)
+        except FileNotFoundError:
+            print("Error: 'i2cdetect' command not found. Install it using 'sudo apt-get install i2c-tools'.")
+            sys.exit(1)
+        except Exception as e:
+            print(f"Error verifying I²C bus: {e}")
+            sys.exit(1)
+
     def _initialize_sensor(self):
-        # Power on the gesture sensor by setting the pin to HIGH
         GPIO.output(GESTURE_SENSOR_PIN, GPIO.HIGH)
         retries = 3
         while retries > 0:
