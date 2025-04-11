@@ -322,8 +322,10 @@ class PAJ7620U2(object):
             print(f"Gesture Data: {Gesture_Data}")
 
         if Gesture_Data == PAJ_UP:
-            print("Gesture UP detected: Turning OFF Bluetooth")
+            print("Gesture UP detected: Turning OFF Bluetooth and playing 'bluetoothoff.mp3'")
             os.system("bluetoothctl power off")
+            bluetooth_off_file = os.path.join(NAV_AUDIO_DIR, "bluetoothoff.mp3")
+            self.play_audio(bluetooth_off_file)
         elif Gesture_Data == PAJ_DOWN:
             print(f"Gesture DOWN detected: Replaying task[{current_task}]")
             self.play_audio("/home/senior/RPI_AI_Gesture_Device/audio_test.mp3")
@@ -356,9 +358,11 @@ class PAJ7620U2(object):
             else:
                 print("Gesture FORWARD detected: Invalid task index")
         elif Gesture_Data == PAJ_BACKWARD:
-            print("Gesture BACKWARD detected: Turning ON Bluetooth")
+            print("Gesture BACKWARD detected: Turning ON Bluetooth and playing 'bluetoothon.mp3'")
             os.system("rfkill unblock bluetooth")
             os.system("bluetoothctl power on")
+            bluetooth_on_file = os.path.join(NAV_AUDIO_DIR, "bluetoothon.mp3")
+            self.play_audio(bluetooth_on_file)
         return Gesture_Data
 
 # ----------------------------------------------------------------
