@@ -103,6 +103,13 @@ AUDIO_FILES_DIR = os.path.join(BASE_DIR, "finalv/audio_files")
 NAV_AUDIO_DIR = os.path.join(AUDIO_FILES_DIR, "navaudio")
 
 # ----------------------------------------------------------------
+# GPIO Setup for Gesture Sensor
+# ----------------------------------------------------------------
+GESTURE_SENSOR_PIN = 7  # Pin 4 from the left corresponds to GPIO 7
+GPIO.setup(GESTURE_SENSOR_PIN, GPIO.OUT)
+GPIO.output(GESTURE_SENSOR_PIN, GPIO.LOW)
+
+# ----------------------------------------------------------------
 # Additional Audio Helper Functions
 # ----------------------------------------------------------------
 
@@ -259,10 +266,11 @@ def schedule_tasks(tasks):
 
 class PAJ7620U2(object):
     def __init__(self, address=PAJ7620U2_I2C_ADDRESS):
-        self._address = address
+        # Ensure the gesture sensor pin is set to LOW during initialization
+        GPIO.output(GESTURE_SENSOR_PIN, GPIO.LOW)
         try:
             self._bus = smbus.SMBus(1)
-            time.sleep(15)  # Delay to give sensor time to power up
+            time.sleep(0.5)  # Delay to give sensor time to power up
         except Exception as e:
             print(f"Error opening I2C bus: {e}")
             sys.exit(1)
@@ -270,6 +278,8 @@ class PAJ7620U2(object):
         self._initialize_sensor()
 
     def _initialize_sensor(self):
+        # Power on the gesture sensor by setting the pin to HIGH
+        GPIO.output(GESTURE_SENSOR_PIN, GPIO.HIGH)
         try:
             if self._read_byte(0x00) == 0x20:
                 print("\nGesture Sensor READY\n")
@@ -280,6 +290,9 @@ class PAJ7620U2(object):
                 time.sleep(2)
         except Exception as e:
             print(f"Error initializing sensor: {e}")
+        finally:
+            # Set the pin back to LOW after initialization
+            GPIO.output(GESTURE_SENSOR_PIN, GPIO.LOW)
 
     def _read_byte(self, cmd):
         return self._bus.read_byte_data(self._address, cmd)
@@ -358,7 +371,7 @@ class PAJ7620U2(object):
             else:
                 print("Gesture FORWARD detected: Invalid task index")
         elif Gesture_Data == PAJ_BACKWARD:
-            print("Gesture BACKWARD detected: Ensuring Bluetooth is ON and playing 'bluetoothon.mp3'")
+            print("Gesture BACKWARD detected: Turning ON Bluetooth and playing 'bluetoothon.mp3'")
             os.system("rfkill unblock bluetooth")
             os.system("bluetoothctl power on")
             bluetooth_on_file = os.path.join(NAV_AUDIO_DIR, "bluetoothon.mp3")
@@ -506,10 +519,11 @@ except IndexError:
     print("Error: No Bluetooth adapter found. Ensure Bluetooth is enabled and available.")
     sys.exit(1)
 
-# Ensure the Bluetooth adapter is powered on before initializing the peripheral.
+# Ensure Bluetooth adapter is powered on for Bluezero
 os.system("rfkill unblock bluetooth")
 os.system("bluetoothctl power on")
 time.sleep(1)
+
 
 periph = peripheral.Peripheral(adapter_address=adapter_address, local_name='RPi-BLE')
 periph.add_service(1, service_uuid, primary=True)
@@ -518,13 +532,6 @@ periph.add_characteristic(1, 1, characteristic_uuid,
                           notifying=False,
                           flags=['read'],
                           read_callback=read_callback)
-
-# Immediately publish the BLE advertisement so the device is always discoverable and connectable.
-try:
-    periph.publish()
-    print("BLE advertising active. Device is always discoverable as 'RPi-BLE'.")
-except Exception as e:
-    print(f"Error during BLE advertising: {e}")
 
 # ----------------------------------------------------------------
 # Main Section
