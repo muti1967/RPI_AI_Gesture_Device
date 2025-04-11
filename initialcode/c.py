@@ -506,6 +506,12 @@ except IndexError:
     print("Error: No Bluetooth adapter found. Ensure Bluetooth is enabled and available.")
     sys.exit(1)
 
+# Ensure Bluetooth adapter is powered on for Bluezero
+os.system("rfkill unblock bluetooth")
+os.system("bluetoothctl power on")
+time.sleep(1)
+
+
 periph = peripheral.Peripheral(adapter_address=adapter_address, local_name='RPi-BLE')
 periph.add_service(1, service_uuid, primary=True)
 periph.add_characteristic(1, 1, characteristic_uuid,
