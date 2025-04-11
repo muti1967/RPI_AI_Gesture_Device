@@ -2,6 +2,7 @@
 # -*- coding:utf-8 -*-
 
 import time
+time.sleep(5) # Delay to ensure the system is ready
 import smbus
 from bleak import BleakScanner, BleakClient
 import RPi.GPIO as GPIO
