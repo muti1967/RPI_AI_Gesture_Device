@@ -17,7 +17,6 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import sys
 import select
-#from gpiozero import Button  # Removed since we no longer use a physical button
 from bluezero import peripheral
 from bluezero import adapter
 import asyncio
@@ -26,8 +25,8 @@ import asyncio
 # Pre-Initialization: Clear leftover GPIO state and disable warnings
 # ----------------------------------------------------------------
 GPIO.setwarnings(False)
-GPIO.cleanup()
-GPIO.setmode(GPIO.BCM)
+GPIO.cleanup()        # Free any leftover resources
+GPIO.setmode(GPIO.BCM)  # Ensure BCM numbering is used
 
 # ----------------------------------------------------------------
 # Sensor/Gesture Constants and Register Arrays
@@ -48,12 +47,12 @@ PAJ_OBJ_SIZE_L = 0xB1
 PAJ_OBJ_SIZE_H = 0xB2
 
 # Gesture detection flags
-PAJ_UP = 0x01           # Will be used to stop BLE advertisement (and now play bluetoothoff)
+PAJ_UP = 0x01
 PAJ_DOWN = 0x02
 PAJ_LEFT = 0x04
 PAJ_RIGHT = 0x08
 PAJ_FORWARD = 0x10
-PAJ_BACKWARD = 0x20     # Will be used to start BLE advertisement (and now play bluetoothon)
+PAJ_BACKWARD = 0x20
 PAJ_CLOCKWISE = 0x40
 PAJ_COUNT_CLOCKWISE = 0x80
 PAJ_WAVE = 0x100
@@ -119,30 +118,6 @@ def play_bootup_sound():
     else:
         print("Bootup file not found:", file_bootup)
 
-def play_bluetooth_on():
-    file_on = os.path.join(NAV_AUDIO_DIR, "bluetoothon.mp3")
-    if os.path.exists(file_on):
-        print("Playing Bluetooth ON sound...")
-        try:
-            subprocess.run(["ffplay", "-nodisp", "-autoexit", file_on],
-                           capture_output=True, text=True)
-        except Exception as e:
-            print(f"Error playing Bluetooth ON sound: {e}")
-    else:
-        print("Bluetooth ON file not found:", file_on)
-
-def play_bluetooth_off():
-    file_off = os.path.join(NAV_AUDIO_DIR, "bluetoothoff.mp3")
-    if os.path.exists(file_off):
-        print("Playing Bluetooth OFF sound...")
-        try:
-            subprocess.run(["ffplay", "-nodisp", "-autoexit", file_off],
-                           capture_output=True, text=True)
-        except Exception as e:
-            print(f"Error playing Bluetooth OFF sound: {e}")
-    else:
-        print("Bluetooth OFF file not found:", file_off)
-
 def play_upload_confirmation():
     file_confirm = os.path.join(NAV_AUDIO_DIR, "upload_conformation.mp3")
     if os.path.exists(file_confirm):
@@ -189,6 +164,7 @@ class InfoFileHandler(FileSystemEventHandler):
                 schedule.clear()
                 for task in self.sensor.tasks:
                     schedule.every().day.at(task.play_time).do(play_scheduled_audio, task)
+                # Schedule the task one-two playback every minute.
                 schedule.every(1).minute.do(play_task_one_two)
                 self.last_modified = current_time
 
@@ -271,13 +247,14 @@ def play_task_one_two():
 def schedule_tasks(tasks):
     for task in tasks:
         schedule.every().day.at(task.play_time).do(play_scheduled_audio, task)
+    # Also schedule play_task_one_two to run every minute.
     schedule.every(1).minute.do(play_task_one_two)
     while True:
         schedule.run_pending()
         time.sleep(1)
 
 # ----------------------------------------------------------------
-# Unified PAJ7620U2 Sensor Class (I²C & Gesture Detection)
+# Unified PAJ7620U2 Sensor Class (Using Actual I²C and Gesture Detection)
 # ----------------------------------------------------------------
 
 class PAJ7620U2(object):
@@ -285,7 +262,7 @@ class PAJ7620U2(object):
         self._address = address
         try:
             self._bus = smbus.SMBus(1)
-            time.sleep(15)  # Increased delay for cold boot stabilization
+            time.sleep(15)  # Delay to give sensor time to power up
         except Exception as e:
             print(f"Error opening I2C bus: {e}")
             sys.exit(1)
@@ -344,24 +321,44 @@ class PAJ7620U2(object):
         if Gesture_Data != 0:
             print(f"Gesture Data: {Gesture_Data}")
 
-        # New behavior via gestures:
-        if Gesture_Data == PAJ_BACKWARD:
-            print("Gesture BACKWARD detected: Starting BLE advertisement and playing Bluetooth ON sound")
-            try:
-                periph.publish()
-                print("BLE advertising started")
-                play_bluetooth_on()
-            except Exception as e:
-                print(f"Error starting BLE advertisement: {e}")
-        elif Gesture_Data == PAJ_UP:
-            print("Gesture UP detected: Stopping BLE advertisement and playing Bluetooth OFF sound")
-            try:
-                periph.unpublish()
-                print("BLE advertising stopped")
-                play_bluetooth_off()
-            except Exception as e:
-                print(f"Error stopping BLE advertisement: {e}")
-        # (Other gestures can be added here if needed.)
+        if Gesture_Data == PAJ_UP:
+            print("Gesture UP detected: Turning OFF Bluetooth")
+            os.system("bluetoothctl power off")
+        elif Gesture_Data == PAJ_DOWN:
+            print(f"Gesture DOWN detected: Replaying task[{current_task}]")
+            self.play_audio("/home/senior/RPI_AI_Gesture_Device/audio_test.mp3")
+        elif Gesture_Data == PAJ_LEFT:
+            if current_task > 1:
+                current_task -= 1
+            else:
+                current_task = 1
+            if current_task <= len(self.tasks) and self.tasks:
+                task = self.tasks[current_task - 1]
+                print(f"Gesture LEFT detected: Navigating to task[{current_task}]")
+                task.play_nav_audio()
+            else:
+                print("Gesture LEFT detected but no task available.")
+        elif Gesture_Data == PAJ_RIGHT:
+            current_task += 1
+            if current_task > len(self.tasks):
+                current_task = len(self.tasks)
+            if current_task <= len(self.tasks) and self.tasks:
+                task = self.tasks[current_task - 1]
+                print(f"Gesture RIGHT detected: Navigating to task[{current_task}]")
+                task.play_nav_audio()
+            else:
+                print("Gesture RIGHT detected but no task available.")
+        elif Gesture_Data == PAJ_FORWARD:
+            if 1 <= current_task <= len(self.tasks) and self.tasks:
+                task = self.tasks[current_task - 1]
+                print(f"Gesture FORWARD detected: Playing audio for task[{current_task}]")
+                self.play_audio(task.audio_file)
+            else:
+                print("Gesture FORWARD detected: Invalid task index")
+        elif Gesture_Data == PAJ_BACKWARD:
+            print("Gesture BACKWARD detected: Turning ON Bluetooth")
+            os.system("rfkill unblock bluetooth")
+            os.system("bluetoothctl power on")
         return Gesture_Data
 
 # ----------------------------------------------------------------
@@ -453,7 +450,7 @@ async def enter_pairing_mode():
                         if client.is_connected:
                             connected = True
                             print(f"Connected to {device.name}")
-                            # Play upload confirmation upon connection.
+                            # Play upload confirmation sound upon receiving audio (simulate here)
                             play_upload_confirmation()
                             break
         print("LED SOLID")
@@ -519,10 +516,6 @@ periph.add_characteristic(1, 1, characteristic_uuid,
 
 if __name__ == '__main__':
     print("\nGesture Sensor Test Program ...")
-    print("BLE advertisement will be controlled via gestures:")
-    print(" - A BACKWARD gesture (0x20) will start BLE advertisement and play the Bluetooth ON sound.")
-    print(" - An UP gesture (0x01) will stop BLE advertisement and play the Bluetooth OFF sound.")
-    
     if os.path.exists(INFO_FILE_PATH):
         print("Removing existing info.txt to ensure fresh start...")
         os.remove(INFO_FILE_PATH)
@@ -537,7 +530,7 @@ if __name__ == '__main__':
         os.makedirs(AUDIO_FILES_DIR, exist_ok=True)
         os.makedirs(NAV_AUDIO_DIR, exist_ok=True)
 
-        # Start scheduler thread for tasks and playing tasks 1 and 2 every minute.
+        # Start scheduler thread for tasks and for playing tasks 1 and 2 every minute.
         scheduler_thread = threading.Thread(target=schedule_tasks, args=(sensor.tasks,))
         scheduler_thread.daemon = True
         scheduler_thread.start()
