@@ -317,13 +317,14 @@ def schedule_tasks(tasks):
 class PAJ7620U2(object):
     def __init__(self, address=PAJ7620U2_I2C_ADDRESS):
         self._address = address
+        self.tasks = []  # Initialize tasks attribute
         try:
             self._bus = smbus.SMBus(1)
             time.sleep(0.5)  # Delay to give sensor time to power up
         except Exception as e:
             print(f"Error opening I2C bus: {e}")
             sys.exit(1)
-        self.tasks = read_task_info()
+        self.tasks = read_task_info()  # Load tasks from info.txt
         self._initialize_sensor()
 
     def _initialize_sensor(self):
@@ -593,8 +594,7 @@ def run_paj7620u2_script():
         process = subprocess.Popen(["python", script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         # Wait for 20 seconds
-        time.sleep(20)
-
+        time.sleep(0)
         # Terminate the process
         print(f"Stopping {script_path} after 20 seconds...")
         process.send_signal(signal.SIGTERM)
@@ -666,6 +666,8 @@ if __name__ == '__main__':
     # Play bootup sound once at startup.
     play_bootup_sound()
 
+    observer = None  # Initialize observer to avoid NameError in finally block
+
     try:
         os.makedirs(os.path.dirname(INFO_FILE_PATH), exist_ok=True)
         os.makedirs(AUDIO_FILES_DIR, exist_ok=True)
@@ -693,8 +695,10 @@ if __name__ == '__main__':
 
     except KeyboardInterrupt:
         print("Exiting program...")
-        observer.stop()
+        if observer:
+            observer.stop()
     finally:
-        observer.join()
+        if observer:
+            observer.join()
         print("Cleaning up GPIO")
         GPIO.cleanup()
