@@ -233,6 +233,13 @@ def play_upload_confirmation():
         print("Upload confirmation file not found:", file_confirm)
 
 # ----------------------------------------------------------------
+# GPIO Setup for Gesture Sensor
+# ----------------------------------------------------------------
+GESTURE_SENSOR_PIN = 7  # Pin 4 from the left corresponds to GPIO 7
+GPIO.setup(GESTURE_SENSOR_PIN, GPIO.OUT)
+GPIO.output(GESTURE_SENSOR_PIN, GPIO.LOW)
+
+# ----------------------------------------------------------------
 # Task Class and File Handler
 # ----------------------------------------------------------------
 
@@ -362,11 +369,15 @@ def schedule_tasks(tasks):
 class PAJ7620U2(object):
     def __init__(self, address=PAJ7620U2_I2C_ADDRESS):
         self._address = address
+        # Ensure the gesture sensor pin is set to LOW during initialization
+        GPIO.output(GESTURE_SENSOR_PIN, GPIO.LOW)
         self._bus = smbus.SMBus(1)
         self.tasks = read_task_info()
         self._initialize_sensor()
 
     def _initialize_sensor(self):
+        # Power on the gesture sensor by setting the pin to HIGH
+        GPIO.output(GESTURE_SENSOR_PIN, GPIO.HIGH)
         try:
             if self._read_byte(0x00) == 0x20:
                 print("\nGesture Sensor READY\n")
@@ -377,6 +388,9 @@ class PAJ7620U2(object):
                 time.sleep(2)
         except Exception as e:
             print(f"Error initializing sensor: {e}")
+        finally:
+            # Set the pin back to LOW after initialization
+            GPIO.output(GESTURE_SENSOR_PIN, GPIO.LOW)
 
     def _read_byte(self, cmd):
         return self._bus.read_byte_data(self._address, cmd)
