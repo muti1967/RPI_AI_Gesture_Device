@@ -2,7 +2,6 @@
 # -*- coding:utf-8 -*-
 
 import time
-time.sleep(1) 
 import smbus
 from bleak import BleakScanner, BleakClient
 import RPi.GPIO as GPIO
@@ -21,7 +20,6 @@ import select
 from bluezero import peripheral
 from bluezero import adapter
 import asyncio
-import signal  # For handling process termination
 
 # ----------------------------------------------------------------
 # Pre-Initialization: Clear leftover GPIO state and disable warnings
@@ -91,61 +89,6 @@ Init_Gesture_Array = (
     (0xEF, 0x00),
     (0x41, 0xFF),
     (0x42, 0x01),
-)
-
-# Define Init_Register_Array (if missing)
-Init_Register_Array = (
-    (0xEF, 0x00),
-    (0x37, 0x07),
-    (0x38, 0x17),
-    (0x39, 0x06),
-    (0x41, 0x00),
-    (0x42, 0x00),
-    (0x46, 0x2D),
-    (0x47, 0x0F),
-    (0x48, 0x3C),
-    (0x49, 0x00),
-    (0x4A, 0x1E),
-    (0x4C, 0x20),
-    (0x51, 0x10),
-    (0x5E, 0x10),
-    (0x60, 0x27),
-    (0x80, 0x42),
-    (0x81, 0x44),
-    (0x82, 0x04),
-    (0x8B, 0x01),
-    (0x90, 0x06),
-    (0x95, 0x0A),
-    (0x96, 0x0C),
-    (0x97, 0x05),
-    (0x9A, 0x14),
-    (0x9C, 0x3F),
-    (0xA5, 0x19),
-    (0xCC, 0x19),
-    (0xCD, 0x0B),
-    (0xCE, 0x13),
-    (0xCF, 0x64),
-    (0xD0, 0x21),
-    (0xEF, 0x01),
-    (0x02, 0x0F),
-    (0x03, 0x10),
-    (0x04, 0x02),
-    (0x25, 0x01),
-    (0x27, 0x39),
-    (0x28, 0x7F),
-    (0x29, 0x08),
-    (0x3E, 0xFF),
-    (0x5E, 0x3D),
-    (0x65, 0x96),
-    (0x67, 0x97),
-    (0x69, 0xCD),
-    (0x6A, 0x01),
-    (0x6D, 0x2C),
-    (0x6E, 0x01),
-    (0x72, 0x01),
-    (0x73, 0x35),
-    (0x74, 0x00),
-    (0x77, 0x01),
 )
 
 # ----------------------------------------------------------------
@@ -222,7 +165,7 @@ class InfoFileHandler(FileSystemEventHandler):
                 for task in self.sensor.tasks:
                     schedule.every().day.at(task.play_time).do(play_scheduled_audio, task)
                 # Schedule the task one-two playback every minute.
-                schedule.every(1).minute.do(play_task_one_two)
+                schedule.every(.5).minute.do(play_task_one_two)
                 self.last_modified = current_time
 
 def read_task_info():
@@ -317,18 +260,13 @@ def schedule_tasks(tasks):
 class PAJ7620U2(object):
     def __init__(self, address=PAJ7620U2_I2C_ADDRESS):
         self._address = address
-        self.tasks = []  # Initialize tasks attribute
         try:
             self._bus = smbus.SMBus(1)
             time.sleep(0.5)  # Delay to give sensor time to power up
         except Exception as e:
             print(f"Error opening I2C bus: {e}")
             sys.exit(1)
-        try:
-            self.tasks = read_task_info()  # Load tasks from info.txt
-        except Exception as e:
-            print(f"Error loading tasks: {e}")
-            self.tasks = []  # Ensure tasks is always initialized
+        self.tasks = read_task_info()
         self._initialize_sensor()
 
     def _initialize_sensor(self):
@@ -586,46 +524,39 @@ periph.add_characteristic(1, 1, characteristic_uuid,
 # Main Section
 # ----------------------------------------------------------------
 
-def run_paj7620u2_script():
-    """Run the PAJ7620U2.py script and stop it after 20 seconds."""
-    script_path = os.path.join(BASE_DIR, "initialcode", "PAJ7620U2.py")
-    if not os.path.exists(script_path):
-        print(f"Error: Script not found at {script_path}")
-        return
-
+def sensor_wakeup():
+    print("Waking up sensor...")
+    # Open the I²C bus and write the initialization sequence
     try:
-        print(f"Starting {script_path}...")
-        process = subprocess.Popen(["python", script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-        # Wait for 20 seconds
-        time.sleep(0)
-        # Terminate the process
-        print(f"Stopping {script_path} after 20 seconds...")
-        process.send_signal(signal.SIGTERM)
-        process.wait()  # Ensure the process has terminated
-        print(f"{script_path} stopped.")
+        bus = smbus.SMBus(1)
+        # Wait a bit to allow power supplies to stabilize
+        time.sleep(1)
+        # Read sensor register to ensure it's present
+        sensor_id = bus.read_byte_data(PAJ7620U2_I2C_ADDRESS, 0x00)
+        print("Sensor ID:", hex(sensor_id))
+        # Write the gesture initialization sequence
+        for reg, val in Init_Gesture_Array:
+            bus.write_byte_data(PAJ7620U2_I2C_ADDRESS, reg, val)
+        print("Sensor initialization sequence complete.")
     except Exception as e:
-        print(f"Error running {script_path}: {e}")
+        print("Error during sensor wakeup:", e)
+    finally:
+        # Optionally, wait a bit more for settling after init
+        time.sleep(2)
 
 if __name__ == '__main__':
-    import time
-    time.sleep(0.05)
     print("\nGesture Sensor Test Program ...")
-    paj7620u2=PAJ7620U2()
-    # Run PAJ7620U2.py at the start and stop it after 20 seconds
-    run_paj7620u2_script()
-   
-
     if os.path.exists(INFO_FILE_PATH):
         print("Removing existing info.txt to ensure fresh start...")
         os.remove(INFO_FILE_PATH)
+
+    # Call sensor_wakeup before creating the sensor object
+    sensor_wakeup()
     sensor = PAJ7620U2()
     current_task = 1
 
     # Play bootup sound once at startup.
     play_bootup_sound()
-
-    observer = None  # Initialize observer to avoid NameError in finally block
 
     try:
         os.makedirs(os.path.dirname(INFO_FILE_PATH), exist_ok=True)
@@ -654,10 +585,8 @@ if __name__ == '__main__':
 
     except KeyboardInterrupt:
         print("Exiting program...")
-        if observer:
-            observer.stop()
+        observer.stop()
     finally:
-        if observer:
-            observer.join()
+        observer.join()
         print("Cleaning up GPIO")
         GPIO.cleanup()
