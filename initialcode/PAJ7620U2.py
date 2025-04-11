@@ -2,8 +2,6 @@
 # -*- coding:utf-8 -*-
 import time
 import smbus
-import os
-import subprocess
 
 #i2c address
 PAJ7620U2_I2C_ADDRESS   = 0x73
@@ -193,19 +191,9 @@ class PAJ7620U2(object):
 	def _write_byte(self,cmd,val):
 		self._bus.write_byte_data(self._address,cmd,val)
 	def check_gesture(self):
-		Gesture_Data = self._read_u16(PAJ_INT_FLAG1)
+		Gesture_Data=self._read_u16(PAJ_INT_FLAG1)
 		if Gesture_Data == PAJ_UP:
 			print("Up\r\n")
-			audio_file = "/home/senior/RPI_AI_Gesture_Device/finalv/audio_files/navaudio/1.mp3"
-			if os.path.exists(audio_file):
-				try:
-					print(f"Playing audio: {audio_file}")
-					subprocess.run(["ffplay", "-nodisp", "-autoexit", audio_file],
-								   capture_output=True, text=True)
-				except Exception as e:
-					print(f"Error playing audio: {e}")
-			else:
-				print(f"Audio file not found: {audio_file}")
 		elif Gesture_Data == PAJ_DOWN:
 			print("Down\r\n")
 		elif Gesture_Data == PAJ_LEFT:
@@ -235,7 +223,7 @@ if __name__ == '__main__':
 	while True:
 		time.sleep(0.05)
 		paj7620u2.check_gesture()
-
+		
 
 
 
