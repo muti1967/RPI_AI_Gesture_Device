@@ -606,51 +606,6 @@ def run_paj7620u2_script():
         print(f"{script_path} stopped.")
     except Exception as e:
         print(f"Error running {script_path}: {e}")
-        
-class PAJ7620U2(object):
-	def __init__(self,address=PAJ7620U2_I2C_ADDRESS):
-		self._address = address
-		self._bus = smbus.SMBus(1)
-		time.sleep(0.5)
-		if self._read_byte(0x00) == 0x20:
-			print("\nGesture Sensor OK\n")
-			for num in range(len(Init_Register_Array)):
-				self._write_byte(Init_Register_Array[num][0],Init_Register_Array[num][1])
-		else:
-			print("\nGesture Sensor Error\n")
-		self._write_byte(PAJ_BANK_SELECT, 0)
-		for num in range(len(Init_Gesture_Array)):
-				self._write_byte(Init_Gesture_Array[num][0],Init_Gesture_Array[num][1])
-	def _read_byte(self,cmd):
-		return self._bus.read_byte_data(self._address,cmd)
-	
-	def _read_u16(self,cmd):
-		LSB = self._bus.read_byte_data(self._address,cmd)
-		MSB = self._bus.read_byte_data(self._address,cmd+1)
-		return (MSB	<< 8) + LSB
-	def _write_byte(self,cmd,val):
-		self._bus.write_byte_data(self._address,cmd,val)
-	def check_gesture(self):
-		Gesture_Data=self._read_u16(PAJ_INT_FLAG1)
-		if Gesture_Data == PAJ_UP:
-			print("Up\r\n")
-		elif Gesture_Data == PAJ_DOWN:
-			print("Down\r\n")
-		elif Gesture_Data == PAJ_LEFT:
-			print("Left\r\n")	
-		elif Gesture_Data == PAJ_RIGHT:
-			print("Right\r\n")	
-		elif Gesture_Data == PAJ_FORWARD:
-			print("Forward\r\n")	
-		elif Gesture_Data == PAJ_BACKWARD:
-			print("Backward\r\n")
-		elif Gesture_Data == PAJ_CLOCKWISE:
-			print("Clockwise\r\n")	
-		elif Gesture_Data == PAJ_COUNT_CLOCKWISE:
-			print("AntiClockwise\r\n")	
-		elif Gesture_Data == PAJ_WAVE:
-			print("Wave\r\n")	
-		return Gesture_Data
 
 if __name__ == '__main__':
     import time
