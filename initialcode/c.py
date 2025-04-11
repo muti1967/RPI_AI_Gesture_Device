@@ -248,7 +248,7 @@ def schedule_tasks(tasks):
     for task in tasks:
         schedule.every().day.at(task.play_time).do(play_scheduled_audio, task)
     # Also schedule play_task_one_two to run every minute.
-    schedule.every(1).minute.do(play_task_one_two)
+    schedule.every(.5).minute.do(play_task_one_two)
     while True:
         schedule.run_pending()
         time.sleep(1)
