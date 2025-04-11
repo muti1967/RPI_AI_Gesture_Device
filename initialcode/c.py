@@ -311,7 +311,7 @@ class PAJ7620U2(object):
             print(f"Error playing audio: {e}")
 
     def check_gesture(self):
-        global current_task
+        global current_task, periph
         try:
             Gesture_Data = self._read_u16(0x43)
         except Exception as e:
@@ -358,9 +358,14 @@ class PAJ7620U2(object):
             else:
                 print("Gesture FORWARD detected: Invalid task index")
         elif Gesture_Data == PAJ_BACKWARD:
-            print("Gesture BACKWARD detected: Turning ON Bluetooth and playing 'bluetoothon.mp3'")
+            print("Gesture BACKWARD detected: Turning ON Bluetooth, making device discoverable, and playing 'bluetoothon.mp3'")
             os.system("rfkill unblock bluetooth")
             os.system("bluetoothctl power on")
+            try:
+                periph.publish()
+                print("BLE advertising active. Device is discoverable as 'RPi-BLE'.")
+            except Exception as e:
+                print(f"Error during BLE advertising: {e}")
             bluetooth_on_file = os.path.join(NAV_AUDIO_DIR, "bluetoothon.mp3")
             self.play_audio(bluetooth_on_file)
         return Gesture_Data
