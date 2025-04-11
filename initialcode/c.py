@@ -165,7 +165,7 @@ class InfoFileHandler(FileSystemEventHandler):
                 for task in self.sensor.tasks:
                     schedule.every().day.at(task.play_time).do(play_scheduled_audio, task)
                 # Schedule the task one-two playback every minute.
-                schedule.every(1).minute.do(play_task_one_two)
+                schedule.every(.5).minute.do(play_task_one_two)
                 self.last_modified = current_time
 
 def read_task_info():
