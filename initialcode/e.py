@@ -20,6 +20,7 @@ import select
 from bluezero import peripheral
 from bluezero import adapter
 import asyncio
+import signal  # For handling process termination
 
 # ----------------------------------------------------------------
 # Pre-Initialization: Clear leftover GPIO state and disable warnings
@@ -32,170 +33,68 @@ GPIO.setmode(GPIO.BCM)  # Ensure BCM numbering is used
 # Sensor/Gesture Constants and Register Arrays
 # ----------------------------------------------------------------
 
-#i2c address
-PAJ7620U2_I2C_ADDRESS   = 0x73
-#Register Bank select
-PAJ_BANK_SELECT			= 0xEF			#Bank0== 0x00,Bank1== 0x01
-#Register Bank 0
-PAJ_SUSPEND				= 0x03		#I2C suspend command (Write = 0x01 to enter suspend state). I2C wake-up command is slave ID wake-up. Refer to topic “I2C Bus Timing Characteristics and Protocol”
-PAJ_INT_FLAG1_MASK		= 0x41		#Gesture detection interrupt flag mask
-PAJ_INT_FLAG2_MASK		= 0x42		#Gesture/PS detection interrupt flag mask
-PAJ_INT_FLAG1		    = 0x43		#Gesture detection interrupt flag
-PAJ_INT_FLAG2			= 0x44		#Gesture/PS detection interrupt flag
-PAJ_STATE				= 0x45		#State indicator for gesture detection (Only functional at gesture detection mode)
-PAJ_PS_HIGH_THRESHOLD	= 0x69		#PS hysteresis high threshold (Only functional at proximity detection mode)		
-PAJ_PS_LOW_THRESHOLD	= 0x6A		#PS hysteresis low threshold (Only functional at proximity detection mode)
-PAJ_PS_APPROACH_STATE	= 0x6B		#PS approach state,  Approach = 1 , (8 bits PS data >= PS high threshold),  Not Approach = 0 , (8 bits PS data <= PS low threshold)(Only functional at proximity detection mode)
-PAJ_PS_DATA				= 0x6C		#PS 8 bit data(Only functional at gesture detection mode)
-PAJ_OBJ_BRIGHTNESS		= 0xB0		#Object Brightness (Max. 255)
-PAJ_OBJ_SIZE_L			= 0xB1		#Object Size(Low 8 bit)		
-PAJ_OBJ_SIZE_H			= 0xB2		#Object Size(High 8 bit)	
-#Register Bank 1
-PAJ_PS_GAIN				= 0x44	    #PS gain setting (Only functional at proximity detection mode)
-PAJ_IDLE_S1_STEP_L		= 0x67		#IDLE S1 Step, for setting the S1, Response Factor(Low 8 bit)
-PAJ_IDLE_S1_STEP_H		= 0x68		#IDLE S1 Step, for setting the S1, Response Factor(High 8 bit)	
-PAJ_IDLE_S2_STEP_L		= 0x69		#IDLE S2 Step, for setting the S2, Response Factor(Low 8 bit)
-PAJ_IDLE_S2_STEP_H		= 0x6A		#IDLE S2 Step, for setting the S2, Response Factor(High 8 bit)
-PAJ_OPTOS1_TIME_L		= 0x6B		#OPtoS1 Step, for setting the OPtoS1 time of operation state to standby 1 state(Low 8 bit)	
-PAJ_OPTOS2_TIME_H		= 0x6C		#OPtoS1 Step, for setting the OPtoS1 time of operation state to standby 1 stateHigh 8 bit)	
-PAJ_S1TOS2_TIME_L		= 0x6D		#S1toS2 Step, for setting the S1toS2 time of standby 1 state to standby 2 state(Low 8 bit)	
-PAJ_S1TOS2_TIME_H		= 0x6E		#S1toS2 Step, for setting the S1toS2 time of standby 1 state to standby 2 stateHigh 8 bit)	
-PAJ_EN					= 0x72		#Enable/Disable PAJ7620U2
-#Gesture detection interrupt flag
-PAJ_UP				    = 0x01 
-PAJ_DOWN			    = 0x02
-PAJ_LEFT			    = 0x04 
-PAJ_RIGHT			    = 0x08
-PAJ_FORWARD		    	= 0x10 
-PAJ_BACKWARD		    = 0x20
-PAJ_CLOCKWISE			= 0x40
-PAJ_COUNT_CLOCKWISE		= 0x80
-PAJ_WAVE				= 0x100
-#Power up initialize array
-Init_Register_Array = (
-	(0xEF,0x00),
-	(0x37,0x07),
-	(0x38,0x17),
-	(0x39,0x06),
-	(0x41,0x00),
-	(0x42,0x00),
-	(0x46,0x2D),
-	(0x47,0x0F),
-	(0x48,0x3C),
-	(0x49,0x00),
-	(0x4A,0x1E),
-	(0x4C,0x20),
-	(0x51,0x10),
-	(0x5E,0x10),
-	(0x60,0x27),
-	(0x80,0x42),
-	(0x81,0x44),
-	(0x82,0x04),
-	(0x8B,0x01),
-	(0x90,0x06),
-	(0x95,0x0A),
-	(0x96,0x0C),
-	(0x97,0x05),
-	(0x9A,0x14),
-	(0x9C,0x3F),
-	(0xA5,0x19),
-	(0xCC,0x19),
-	(0xCD,0x0B),
-	(0xCE,0x13),
-	(0xCF,0x64),
-	(0xD0,0x21),
-	(0xEF,0x01),
-	(0x02,0x0F),
-	(0x03,0x10),
-	(0x04,0x02),
-	(0x25,0x01),
-	(0x27,0x39),
-	(0x28,0x7F),
-	(0x29,0x08),
-	(0x3E,0xFF),
-	(0x5E,0x3D),
-	(0x65,0x96),
-	(0x67,0x97),
-	(0x69,0xCD),
-	(0x6A,0x01),
-	(0x6D,0x2C),
-	(0x6E,0x01),
-	(0x72,0x01),
-	(0x73,0x35),
-	(0x74,0x00),
-	(0x77,0x01),
-)
-#Approaches register initialization array
-Init_PS_Array = (
-	(0xEF,0x00),
-	(0x41,0x00),
-	(0x42,0x00),
-	(0x48,0x3C),
-	(0x49,0x00),
-	(0x51,0x13),
-	(0x83,0x20),
-	(0x84,0x20),
-	(0x85,0x00),
-	(0x86,0x10),
-	(0x87,0x00),
-	(0x88,0x05),
-	(0x89,0x18),
-	(0x8A,0x10),
-	(0x9f,0xf8),
-	(0x69,0x96),
-	(0x6A,0x02),
-	(0xEF,0x01),
-	(0x01,0x1E),
-	(0x02,0x0F),
-	(0x03,0x10),
-	(0x04,0x02),
-	(0x41,0x50),
-	(0x43,0x34),
-	(0x65,0xCE),
-	(0x66,0x0B),
-	(0x67,0xCE),
-	(0x68,0x0B),
-	(0x69,0xE9),
-	(0x6A,0x05),
-	(0x6B,0x50),
-	(0x6C,0xC3),
-	(0x6D,0x50),
-	(0x6E,0xC3),
-	(0x74,0x05),
-)
-#Gesture register initializes array
+PAJ7620U2_I2C_ADDRESS = 0x73
+PAJ_BANK_SELECT = 0xEF
+PAJ_SUSPEND = 0x03
+PAJ_INT_FLAG1 = 0x43
+PAJ_INT_FLAG2 = 0x44
+PAJ_STATE = 0x45
+PAJ_PS_HIGH_THRESHOLD = 0x69
+PAJ_PS_LOW_THRESHOLD = 0x6A
+PAJ_PS_APPROACH_STATE = 0x6B
+PAJ_PS_DATA = 0x6C
+PAJ_OBJ_BRIGHTNESS = 0xB0
+PAJ_OBJ_SIZE_L = 0xB1
+PAJ_OBJ_SIZE_H = 0xB2
+
+# Gesture detection flags
+PAJ_UP = 0x01
+PAJ_DOWN = 0x02
+PAJ_LEFT = 0x04
+PAJ_RIGHT = 0x08
+PAJ_FORWARD = 0x10
+PAJ_BACKWARD = 0x20
+PAJ_CLOCKWISE = 0x40
+PAJ_COUNT_CLOCKWISE = 0x80
+PAJ_WAVE = 0x100
+
+# Example gesture sensor register initialization array
 Init_Gesture_Array = (
-	(0xEF,0x00),
-	(0x41,0x00),
-	(0x42,0x00),
-	(0xEF,0x00),
-	(0x48,0x3C),
-	(0x49,0x00),
-	(0x51,0x10),
-	(0x83,0x20),
-	(0x9F,0xF9),
-	(0xEF,0x01),
-	(0x01,0x1E),
-	(0x02,0x0F),
-	(0x03,0x10),
-	(0x04,0x02),
-	(0x41,0x40),
-	(0x43,0x30),
-	(0x65,0x96),
-	(0x66,0x00),
-	(0x67,0x97),
-	(0x68,0x01),
-	(0x69,0xCD),
-	(0x6A,0x01),
-	(0x6B,0xB0),
-	(0x6C,0x04),
-	(0x6D,0x2C),
-	(0x6E,0x01),
-	(0x74,0x00),
-	(0xEF,0x00),
-	(0x41,0xFF),
-	(0x42,0x01),
+    (0xEF, 0x00),
+    (0x41, 0x00),
+    (0x42, 0x00),
+    (0xEF, 0x00),
+    (0x48, 0x3C),
+    (0x49, 0x00),
+    (0x51, 0x10),
+    (0x83, 0x20),
+    (0x9F, 0xF9),
+    (0xEF, 0x01),
+    (0x01, 0x1E),
+    (0x02, 0x0F),
+    (0x03, 0x10),
+    (0x04, 0x02),
+    (0x41, 0x40),
+    (0x43, 0x30),
+    (0x65, 0x96),
+    (0x66, 0x00),
+    (0x67, 0x97),
+    (0x68, 0x01),
+    (0x69, 0xCD),
+    (0x6A, 0x01),
+    (0x6B, 0xB0),
+    (0x6C, 0x04),
+    (0x6D, 0x2C),
+    (0x6E, 0x01),
+    (0x74, 0x00),
+    (0xEF, 0x00),
+    (0x41, 0xFF),
+    (0x42, 0x01),
 )
+
+# ----------------------------------------------------------------
+# Global Variables and Paths
+# ----------------------------------------------------------------
 
 current_task = 1
 HOME_DIR = "/home/senior"  # Hardcoded for correct paths under sudo
@@ -231,13 +130,6 @@ def play_upload_confirmation():
             print(f"Error playing upload confirmation: {e}")
     else:
         print("Upload confirmation file not found:", file_confirm)
-
-# ----------------------------------------------------------------
-# GPIO Setup for Gesture Sensor
-# ----------------------------------------------------------------
-GESTURE_SENSOR_PIN = 7  # Pin 4 from the left corresponds to GPIO 7
-GPIO.setup(GESTURE_SENSOR_PIN, GPIO.OUT)
-GPIO.output(GESTURE_SENSOR_PIN, GPIO.LOW)
 
 # ----------------------------------------------------------------
 # Task Class and File Handler
@@ -287,7 +179,7 @@ def read_task_info():
                     task_number, audio_file, play_time = line.split(',')
                     audio_path = os.path.join(AUDIO_FILES_DIR, audio_file)
                     if not os.path.exists(audio_path):
-                        print(f"Info: Audio file not found: {audio_path}")  # Changed from Warning to Info
+                        print(f"Warning: Audio file not found: {audio_path}")
                     tasks.append(Task(int(task_number), audio_file, play_time))
         if len(tasks) < 9:
             print("Updating info.txt to include all 9 tasks...")
@@ -320,11 +212,16 @@ def play_scheduled_audio(task):
         if not os.path.exists(task.audio_file):
             print(f"Error: Audio file not found: {task.audio_file}")
             return
-        try:
-            subprocess.run(["ffplay", "-nodisp", "-autoexit", task.audio_file],
-                           stderr=subprocess.PIPE, text=True)  # Fixed argument issue
-        except Exception as e:
-            print(f"Error playing audio: {e}")
+        file_ext = os.path.splitext(task.audio_file)[1].lower()
+        print(f"Playing audio with ffplay... ({file_ext})")
+        result = subprocess.run(["ffplay", "-nodisp", "-autoexit", task.audio_file],
+                                capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"Error playing audio with ffplay: {result.stderr}")
+            print("Ensure:")
+            print("1. ffplay is installed (sudo apt-get install ffmpeg)")
+            print("2. The audio system is configured")
+            print("3. The file format is supported")
 
 def play_task_one_two():
     file1 = os.path.join(AUDIO_FILES_DIR, "1.mp3")
@@ -364,44 +261,26 @@ def schedule_tasks(tasks):
 class PAJ7620U2(object):
     def __init__(self, address=PAJ7620U2_I2C_ADDRESS):
         self._address = address
-        GPIO.output(GESTURE_SENSOR_PIN, GPIO.LOW)
-        self._bus = smbus.SMBus(1)
+        try:
+            self._bus = smbus.SMBus(1)
+            time.sleep(0.5)  # Delay to give sensor time to power up
+        except Exception as e:
+            print(f"Error opening I2C bus: {e}")
+            sys.exit(1)
         self.tasks = read_task_info()
-        self._verify_i2c_bus()  # Verify I²C bus before initializing
         self._initialize_sensor()
 
-    def _verify_i2c_bus(self):
-        try:
-            devices = subprocess.check_output(["i2cdetect", "-y", "1"], text=True)
-            if f"{self._address:02x}" not in devices:
-                print(f"Error: Gesture sensor not detected at address 0x{self._address:02x}.")
-                print("Check the wiring and ensure the sensor is powered.")
-                sys.exit(1)
-        except FileNotFoundError:
-            print("Error: 'i2cdetect' command not found. Install it using 'sudo apt-get install i2c-tools'.")
-            sys.exit(1)
-        except Exception as e:
-            print(f"Error verifying I²C bus: {e}")
-            sys.exit(1)
-
     def _initialize_sensor(self):
-        GPIO.output(GESTURE_SENSOR_PIN, GPIO.HIGH)
-        retries = 3
-        while retries > 0:
-            try:
-                if self._read_byte(0x00) == 0x20:
-                    print("\nGesture Sensor READY\n")
-                    for reg, val in Init_Gesture_Array:
-                        self._write_byte(reg, val)
-                    return
-                else:
-                    print("\nGesture Sensor NOT READY - check connections\n")
-            except Exception as e:
-                print(f"Error initializing sensor: {e}")
-                retries -= 1
-                time.sleep(1)
-        print("Failed to initialize gesture sensor after multiple attempts.")
-        GPIO.output(GESTURE_SENSOR_PIN, GPIO.LOW)
+        try:
+            if self._read_byte(0x00) == 0x20:
+                print("\nGesture Sensor READY\n")
+                for reg, val in Init_Gesture_Array:
+                    self._write_byte(reg, val)
+            else:
+                print("\nGesture Sensor NOT READY - check connections\n")
+                time.sleep(2)
+        except Exception as e:
+            print(f"Error initializing sensor: {e}")
 
     def _read_byte(self, cmd):
         return self._bus.read_byte_data(self._address, cmd)
@@ -536,13 +415,10 @@ def start_bluetooth_agent():
     try:
         manager.UnregisterAgent("/test/agent")
     except dbus.exceptions.DBusException as e:
-        print(f"Info: Agent not registered previously: {e}")  # Changed to Info
-    try:
-        manager.RegisterAgent("/test/agent", "DisplayYesNo")
-        manager.RequestDefaultAgent("/test/agent")
-        print("Bluetooth agent started for pairing")
-    except dbus.exceptions.DBusException as e:
-        print(f"Error starting Bluetooth agent: {e}")
+        print(f"Agent not registered previously: {e}")
+    manager.RegisterAgent("/test/agent", "DisplayYesNo")
+    manager.RequestDefaultAgent("/test/agent")
+    print("Bluetooth agent started for pairing")
 
 def remove_paired_devices():
     os.system("bluetoothctl -- remove *")
@@ -649,8 +525,34 @@ periph.add_characteristic(1, 1, characteristic_uuid,
 # Main Section
 # ----------------------------------------------------------------
 
+def run_paj7620u2_script():
+    """Run the PAJ7620U2.py script and stop it after 20 seconds."""
+    script_path = os.path.join(BASE_DIR, "initialcode", "PAJ7620U2.py")
+    if not os.path.exists(script_path):
+        print(f"Error: Script not found at {script_path}")
+        return
+
+    try:
+        print(f"Starting {script_path}...")
+        process = subprocess.Popen(["python", script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        # Wait for 20 seconds
+        time.sleep(20)
+
+        # Terminate the process
+        print(f"Stopping {script_path} after 20 seconds...")
+        process.send_signal(signal.SIGTERM)
+        process.wait()  # Ensure the process has terminated
+        print(f"{script_path} stopped.")
+    except Exception as e:
+        print(f"Error running {script_path}: {e}")
+
 if __name__ == '__main__':
     print("\nGesture Sensor Test Program ...")
+
+    # Run PAJ7620U2.py at the start and stop it after 20 seconds
+    run_paj7620u2_script()
+
     if os.path.exists(INFO_FILE_PATH):
         print("Removing existing info.txt to ensure fresh start...")
         os.remove(INFO_FILE_PATH)
