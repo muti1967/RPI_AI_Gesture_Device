@@ -333,36 +333,73 @@ class PAJ7620U2(object):
         except Exception as e:
             print(f"Error playing audio: {e}")
 
-    def check_gesture(self):
-        global current_task
+def check_gesture(self):
+    global current_task
+    try:
+        Gesture_Data = self._read_u16(0x43)
+    except Exception as e:
+        print(f"Error reading gesture data: {e}")
+        return 0
+
+    if Gesture_Data != 0:
+        print(f"Gesture Data: {Gesture_Data}")
+
+    # Handle BLE control gestures first.
+    if Gesture_Data == PAJ_BACKWARD:
+        print("Gesture BACKWARD detected: Starting BLE advertisement and playing Bluetooth ON sound")
         try:
-            Gesture_Data = self._read_u16(0x43)
+            periph.publish()
+            print("BLE advertising started")
+            play_bluetooth_on()
         except Exception as e:
-            print(f"Error reading gesture data: {e}")
-            return 0
+            print(f"Error starting BLE advertisement: {e}")
+        return Gesture_Data  # Exit once BLE control gesture is processed.
 
-        if Gesture_Data != 0:
-            print(f"Gesture Data: {Gesture_Data}")
+    elif Gesture_Data == PAJ_UP:
+        print("Gesture UP detected: Stopping BLE advertisement and playing Bluetooth OFF sound")
+        try:
+            periph.unpublish()
+            print("BLE advertising stopped")
+            play_bluetooth_off()
+        except Exception as e:
+            print(f"Error stopping BLE advertisement: {e}")
+        return Gesture_Data  # Exit once BLE control gesture is processed.
 
-        # New behavior via gestures:
-        if Gesture_Data == PAJ_BACKWARD:
-            print("Gesture BACKWARD detected: Starting BLE advertisement and playing Bluetooth ON sound")
-            try:
-                periph.publish()
-                print("BLE advertising started")
-                play_bluetooth_on()
-            except Exception as e:
-                print(f"Error starting BLE advertisement: {e}")
-        elif Gesture_Data == PAJ_UP:
-            print("Gesture UP detected: Stopping BLE advertisement and playing Bluetooth OFF sound")
-            try:
-                periph.unpublish()
-                print("BLE advertising stopped")
-                play_bluetooth_off()
-            except Exception as e:
-                print(f"Error stopping BLE advertisement: {e}")
-        # (Other gestures can be added here if needed.)
-        return Gesture_Data
+    # If no BLE gesture is detected, handle task navigation:
+    if Gesture_Data == PAJ_LEFT:
+        if current_task > 1:
+            current_task -= 1
+        else:
+            current_task = 1
+        if current_task <= len(self.tasks) and self.tasks:
+            task = self.tasks[current_task - 1]
+            print(f"Gesture LEFT detected: Navigating to task [{current_task}]")
+            task.play_nav_audio()
+        else:
+            print("Gesture LEFT detected but no task available.")
+    elif Gesture_Data == PAJ_RIGHT:
+        current_task += 1
+        if current_task > len(self.tasks):
+            current_task = len(self.tasks)
+        if current_task <= len(self.tasks) and self.tasks:
+            task = self.tasks[current_task - 1]
+            print(f"Gesture RIGHT detected: Navigating to task [{current_task}]")
+            task.play_nav_audio()
+        else:
+            print("Gesture RIGHT detected but no task available.")
+    elif Gesture_Data == PAJ_FORWARD:
+        if 1 <= current_task <= len(self.tasks) and self.tasks:
+            task = self.tasks[current_task - 1]
+            print(f"Gesture FORWARD detected: Playing audio for task [{current_task}]")
+            self.play_audio(task.audio_file)
+        else:
+            print("Gesture FORWARD detected: Invalid task index")
+    else:
+        # You can add handling for other gestures here if needed.
+        pass
+
+    return Gesture_Data
+
 
 # ----------------------------------------------------------------
 # Bluetooth Agent for Classic Bluetooth Pairing
