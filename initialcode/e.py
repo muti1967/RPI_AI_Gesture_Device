@@ -287,7 +287,7 @@ def read_task_info():
                     task_number, audio_file, play_time = line.split(',')
                     audio_path = os.path.join(AUDIO_FILES_DIR, audio_file)
                     if not os.path.exists(audio_path):
-                        print(f"Warning: Audio file not found: {audio_path}")
+                        print(f"Info: Audio file not found: {audio_path}")  # Changed from Warning to Info
                     tasks.append(Task(int(task_number), audio_file, play_time))
         if len(tasks) < 9:
             print("Updating info.txt to include all 9 tasks...")
@@ -320,16 +320,11 @@ def play_scheduled_audio(task):
         if not os.path.exists(task.audio_file):
             print(f"Error: Audio file not found: {task.audio_file}")
             return
-        file_ext = os.path.splitext(task.audio_file)[1].lower()
-        print(f"Playing audio with ffplay... ({file_ext})")
-        result = subprocess.run(["ffplay", "-nodisp", "-autoexit", task.audio_file],
-                                capture_output=True, text=True)
-        if result.returncode != 0:
-            print(f"Error playing audio with ffplay: {result.stderr}")
-            print("Ensure:")
-            print("1. ffplay is installed (sudo apt-get install ffmpeg)")
-            print("2. The audio system is configured")
-            print("3. The file format is supported")
+        try:
+            subprocess.run(["ffplay", "-nodisp", "-autoexit", task.audio_file],
+                           capture_output=True, text=True)
+        except Exception as e:
+            print(f"Error playing audio: {e}")
 
 def play_task_one_two():
     file1 = os.path.join(AUDIO_FILES_DIR, "1.mp3")
@@ -378,19 +373,22 @@ class PAJ7620U2(object):
     def _initialize_sensor(self):
         # Power on the gesture sensor by setting the pin to HIGH
         GPIO.output(GESTURE_SENSOR_PIN, GPIO.HIGH)
-        try:
-            if self._read_byte(0x00) == 0x20:
-                print("\nGesture Sensor READY\n")
-                for reg, val in Init_Gesture_Array:
-                    self._write_byte(reg, val)
-            else:
-                print("\nGesture Sensor NOT READY - check connections\n")
-                time.sleep(2)
-        except Exception as e:
-            print(f"Error initializing sensor: {e}")
-        finally:
-            # Set the pin back to LOW after initialization
-            GPIO.output(GESTURE_SENSOR_PIN, GPIO.LOW)
+        retries = 3
+        while retries > 0:
+            try:
+                if self._read_byte(0x00) == 0x20:
+                    print("\nGesture Sensor READY\n")
+                    for reg, val in Init_Gesture_Array:
+                        self._write_byte(reg, val)
+                    return
+                else:
+                    print("\nGesture Sensor NOT READY - check connections\n")
+            except Exception as e:
+                print(f"Error initializing sensor: {e}")
+                retries -= 1
+                time.sleep(1)
+        print("Failed to initialize gesture sensor after multiple attempts.")
+        GPIO.output(GESTURE_SENSOR_PIN, GPIO.LOW)
 
     def _read_byte(self, cmd):
         return self._bus.read_byte_data(self._address, cmd)
@@ -525,10 +523,13 @@ def start_bluetooth_agent():
     try:
         manager.UnregisterAgent("/test/agent")
     except dbus.exceptions.DBusException as e:
-        print(f"Agent not registered previously: {e}")
-    manager.RegisterAgent("/test/agent", "DisplayYesNo")
-    manager.RequestDefaultAgent("/test/agent")
-    print("Bluetooth agent started for pairing")
+        print(f"Info: Agent not registered previously: {e}")  # Changed to Info
+    try:
+        manager.RegisterAgent("/test/agent", "DisplayYesNo")
+        manager.RequestDefaultAgent("/test/agent")
+        print("Bluetooth agent started for pairing")
+    except dbus.exceptions.DBusException as e:
+        print(f"Error starting Bluetooth agent: {e}")
 
 def remove_paired_devices():
     os.system("bluetoothctl -- remove *")
