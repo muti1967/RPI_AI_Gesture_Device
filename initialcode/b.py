@@ -26,7 +26,8 @@ import asyncio
 # Pre-Initialization: Clear leftover GPIO state and disable warnings
 # ----------------------------------------------------------------
 GPIO.setwarnings(False)
-GPIO.cleanup()
+GPIO.cleanup()        # Free any leftover resources
+GPIO.setmode(GPIO.BCM)  # Ensure BCM numbering is used
 
 # ----------------------------------------------------------------
 # Sensor/Gesture Constants and Register Arrays
