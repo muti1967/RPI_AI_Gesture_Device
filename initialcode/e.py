@@ -550,25 +550,40 @@ if __name__ == '__main__':
         print("Removing existing info.txt to ensure fresh start...")
         os.remove(INFO_FILE_PATH)
 
-    # Call sensor_wakeup before creating the sensor object
+    # Debug: Starting sensor wakeup
+    print("Starting sensor wakeup...")
     sensor_wakeup()
+    print("Sensor wakeup complete.")
+
+    # Debug: Initializing sensor object
+    print("Initializing sensor object...")
     sensor = PAJ7620U2()
+    print("Sensor object initialized.")
+
     current_task = 1
 
-    # Play bootup sound once at startup.
+    # Debug: Playing bootup sound
+    print("Playing bootup sound...")
     play_bootup_sound()
+    print("Bootup sound played.")
 
     try:
+        # Debug: Creating necessary directories
+        print("Creating necessary directories...")
         os.makedirs(os.path.dirname(INFO_FILE_PATH), exist_ok=True)
         os.makedirs(AUDIO_FILES_DIR, exist_ok=True)
         os.makedirs(NAV_AUDIO_DIR, exist_ok=True)
+        print("Directories created.")
 
-        # Start scheduler thread for tasks and for playing tasks 1 and 2 every minute.
+        # Debug: Starting scheduler thread
+        print("Starting scheduler thread...")
         scheduler_thread = threading.Thread(target=schedule_tasks, args=(sensor.tasks,))
         scheduler_thread.daemon = True
         scheduler_thread.start()
+        print("Scheduler thread started.")
 
-        # Start file observer to monitor info.txt changes.
+        # Debug: Starting file observer
+        print("Starting file observer...")
         event_handler = InfoFileHandler(sensor)
         observer = Observer()
         observer.schedule(event_handler, path=os.path.dirname(INFO_FILE_PATH), recursive=False)
@@ -577,15 +592,25 @@ if __name__ == '__main__':
         print(f"Total number of tasks: {len(sensor.tasks)}")
         print("Current task: 1")
 
+        # Debug: Removing paired devices
+        print("Removing paired devices...")
         remove_paired_devices()
-        start_bluetooth_agent()
+        print("Paired devices removed.")
 
-        # Enter the default state loop to continuously check for gestures.
+        # Debug: Starting Bluetooth agent
+        print("Starting Bluetooth agent...")
+        start_bluetooth_agent()
+        print("Bluetooth agent started.")
+
+        # Debug: Entering default state
+        print("Entering default state...")
         enter_default_state()
 
     except KeyboardInterrupt:
-        print("Exiting program...")
+        print("Exiting program due to KeyboardInterrupt...")
         observer.stop()
+    except Exception as e:
+        print(f"Unexpected error: {e}")
     finally:
         observer.join()
         print("Cleaning up GPIO")
