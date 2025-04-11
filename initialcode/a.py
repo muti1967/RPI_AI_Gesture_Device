@@ -330,7 +330,7 @@ class PAJ7620U2(object):
         return Gesture_Data
 
 # ----------------------------------------------------------------
-# Bluetooth Agent for Classic Bluetooth Pairing
+# Bluetooth Agent for Classic Bluetooth  Pairing
 # ----------------------------------------------------------------
 
 class BluetoothAgent(dbus.service.Object):
