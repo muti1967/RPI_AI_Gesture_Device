@@ -311,7 +311,7 @@ class PAJ7620U2(object):
             print(f"Error playing audio: {e}")
 
     def check_gesture(self):
-        global current_task, periph
+        global current_task
         try:
             Gesture_Data = self._read_u16(0x43)
         except Exception as e:
@@ -358,14 +358,9 @@ class PAJ7620U2(object):
             else:
                 print("Gesture FORWARD detected: Invalid task index")
         elif Gesture_Data == PAJ_BACKWARD:
-            print("Gesture BACKWARD detected: Turning ON Bluetooth, making device discoverable, and playing 'bluetoothon.mp3'")
+            print("Gesture BACKWARD detected: Ensuring Bluetooth is ON and playing 'bluetoothon.mp3'")
             os.system("rfkill unblock bluetooth")
             os.system("bluetoothctl power on")
-            try:
-                periph.publish()
-                print("BLE advertising active. Device is discoverable as 'RPi-BLE'.")
-            except Exception as e:
-                print(f"Error during BLE advertising: {e}")
             bluetooth_on_file = os.path.join(NAV_AUDIO_DIR, "bluetoothon.mp3")
             self.play_audio(bluetooth_on_file)
         return Gesture_Data
@@ -511,11 +506,10 @@ except IndexError:
     print("Error: No Bluetooth adapter found. Ensure Bluetooth is enabled and available.")
     sys.exit(1)
 
-# Ensure Bluetooth adapter is powered on for Bluezero
+# Ensure the Bluetooth adapter is powered on before initializing the peripheral.
 os.system("rfkill unblock bluetooth")
 os.system("bluetoothctl power on")
 time.sleep(1)
-
 
 periph = peripheral.Peripheral(adapter_address=adapter_address, local_name='RPi-BLE')
 periph.add_service(1, service_uuid, primary=True)
@@ -524,6 +518,13 @@ periph.add_characteristic(1, 1, characteristic_uuid,
                           notifying=False,
                           flags=['read'],
                           read_callback=read_callback)
+
+# Immediately publish the BLE advertisement so the device is always discoverable and connectable.
+try:
+    periph.publish()
+    print("BLE advertising active. Device is always discoverable as 'RPi-BLE'.")
+except Exception as e:
+    print(f"Error during BLE advertising: {e}")
 
 # ----------------------------------------------------------------
 # Main Section
