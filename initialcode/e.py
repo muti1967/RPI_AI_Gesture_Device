@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 
 import time
-time.sleep(5) 
+time.sleep(1) 
 import smbus
 from bleak import BleakScanner, BleakClient
 import RPi.GPIO as GPIO
@@ -324,7 +324,11 @@ class PAJ7620U2(object):
         except Exception as e:
             print(f"Error opening I2C bus: {e}")
             sys.exit(1)
-        self.tasks = read_task_info()  # Load tasks from info.txt
+        try:
+            self.tasks = read_task_info()  # Load tasks from info.txt
+        except Exception as e:
+            print(f"Error loading tasks: {e}")
+            self.tasks = []  # Ensure tasks is always initialized
         self._initialize_sensor()
 
     def _initialize_sensor(self):
