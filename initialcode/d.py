@@ -266,6 +266,7 @@ def schedule_tasks(tasks):
 
 class PAJ7620U2(object):
     def __init__(self, address=PAJ7620U2_I2C_ADDRESS):
+        self._address = address  # Ensure the address is assigned to the instance
         # Ensure the gesture sensor pin is set to LOW during initialization
         GPIO.output(GESTURE_SENSOR_PIN, GPIO.LOW)
         try:
