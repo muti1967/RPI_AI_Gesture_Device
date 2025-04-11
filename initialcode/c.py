@@ -262,7 +262,7 @@ class PAJ7620U2(object):
         self._address = address
         try:
             self._bus = smbus.SMBus(1)
-            time.sleep(15)  # Delay to give sensor time to power up
+            time.sleep(1)  # Delay to give sensor time to power up
         except Exception as e:
             print(f"Error opening I2C bus: {e}")
             sys.exit(1)
