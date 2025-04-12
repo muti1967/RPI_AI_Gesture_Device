@@ -3,7 +3,7 @@
 
 import os
 import subprocess
-from config import NAV_AUDIO_DIR
+from config import NAV_AUDIO_DIR, AUDIO_FILES_DIR  # Add AUDIO_FILES_DIR import
 
 def play_bootup_sound():
     file_bootup = os.path.join(NAV_AUDIO_DIR, "bootup.mp3")
