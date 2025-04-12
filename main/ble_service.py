@@ -24,8 +24,35 @@ def ensure_bluetooth_powered():
 SERVICE_UUID = '12345678-1234-5678-1234-56789abcdef0'
 CHAR_UUID = '12345678-1234-5678-1234-56789abcdef1'
 
+class BLEService:
+    def __init__(self):
+        self.periph = None
+        self.adapter = None
+    
+    def cleanup(self):
+        try:
+            if self.periph:
+                try:
+                    self.periph.publish(False)  # Stop advertising
+                except:
+                    pass
+                self.periph = None
+            # Reset adapter state
+            subprocess.run(["bluetoothctl", "power", "off"], check=False)
+            time.sleep(1)
+            subprocess.run(["bluetoothctl", "power", "on"], check=False)
+            time.sleep(1)
+            subprocess.run(["bluetoothctl", "discoverable", "on"], check=False)
+            subprocess.run(["bluetoothctl", "pairable", "on"], check=False)
+        except Exception as e:
+            print(f"Error in cleanup: {e}")
+
+# Create global BLE service instance
+ble_service = BLEService()
+
 def init_ble():
     ensure_bluetooth_powered()
+    ble_service.cleanup()  # Clean up any existing state
     
     bt_adapter = get_adapter()
     if not bt_adapter:
@@ -33,21 +60,20 @@ def init_ble():
         return None
         
     try:
-        # Create BLE peripheral instance
+        # Create new peripheral instance
         periph = peripheral.Peripheral(adapter_address=bt_adapter.address, local_name='RPi-BLE')
-        
-        # Add service with required srv_id
         periph.add_service(srv_id=1, uuid=SERVICE_UUID, primary=True)
-        
-        # Add characteristic with required srv_id and chr_id
-        periph.add_characteristic(srv_id=1,
-                                chr_id=1,
-                                uuid=CHAR_UUID,
-                                value=[0x00],
-                                notifying=False,
-                                flags=['read', 'write'],
-                                read_callback=lambda: [0x42],
-                                write_callback=lambda x: print(f"Received: {x}"))
+        periph.add_characteristic(
+            srv_id=1,
+            chr_id=1,
+            uuid=CHAR_UUID,
+            value=[0x00],
+            notifying=False,
+            flags=['read', 'write'],
+            read_callback=lambda: [0x42],
+            write_callback=lambda x: print(f"Received: {x}")
+        )
+        ble_service.periph = periph
         return periph
     except Exception as e:
         print(f"Error initializing BLE: {e}")
@@ -81,21 +107,14 @@ def stop_ble_advertising():
 
 def stop_ble_service():
     """Clean up BLE service and D-Bus connections"""
-    global periph
     try:
-        if periph:
-            periph.unpublish()
-            periph = None
-        # Reset adapter state
-        bt_adapter = get_adapter()
-        if bt_adapter:
-            subprocess.run(["bluetoothctl", "discoverable", "off"])
-            subprocess.run(["bluetoothctl", "pairable", "off"])
+        ble_service.cleanup()
+        # Ensure Bluetooth is properly reset
+        subprocess.run(["bluetoothctl", "disconnect"], check=False)
+        subprocess.run(["bluetoothctl", "power", "off"], check=False)
+        time.sleep(1)
     except Exception as e:
         print(f"Error stopping BLE service: {e}")
-    finally:
-        # Force removal of any remaining connections
-        subprocess.run(["bluetoothctl", "disconnect"])
 
 # Initialize periph as None at module level
 periph = None

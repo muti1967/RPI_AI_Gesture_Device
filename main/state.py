@@ -23,11 +23,11 @@ def enter_default_state():
             
         if gesture == "DOWN":
             print("Down gesture detected. Turning off Bluetooth...")
-            # Force stop all Bluetooth functionality
             stop_ble_advertising()
             stop_ble_service()
-            subprocess.run(["bluetoothctl", "power", "off"], check=True)
-            subprocess.run(["rfkill", "block", "bluetooth"], check=True)
+            # Add delay to ensure cleanup completes
+            time.sleep(1)
+            subprocess.run(["bluetoothctl", "power", "off"], check=False)
             ble_active = False
             
             # Play audio feedback
@@ -53,7 +53,10 @@ def enter_default_state():
         elif gesture == "BACKWARD":
             if not ble_active:
                 print("Backward gesture detected. Starting BLE...")
-                # Start BLE advertising in a separate thread
+                # Ensure clean state before starting
+                stop_ble_service()
+                time.sleep(1)
+                
                 def start_ble():
                     nonlocal ble_active
                     ble_active = start_ble_advertising()
