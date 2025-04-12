@@ -68,20 +68,22 @@ class PAJ7620U2(object):
         self._initialize_sensor()
 
     def _initialize_sensor(self):
-        max_retries = 3
+        max_retries = 5  # Increased retries
         for attempt in range(max_retries):
             try:
-                if self._read_byte(0x00) == 0x20:
+                sensor_val = self._read_byte(0x00)
+                print(f"Attempt {attempt+1}: Sensor register 0x00 read value: {sensor_val:#04x}")
+                if sensor_val == 0x20:
                     print("\nGesture Sensor READY\n")
                     for reg, val in Init_Gesture_Array:
                         self._write_byte(reg, val)
                     self.sensor_initialized = True
-                    return  # successfully initialized
+                    return  # Successfully initialized
                 else:
-                    print(f"\nGesture Sensor NOT READY on attempt {attempt+1} - check connections\n")
+                    print(f"Attempt {attempt+1}: Unexpected value received. Expected 0x20 but got {sensor_val:#04x}")
             except Exception as e:
-                print(f"Attempt {attempt+1}/{max_retries} failed: {e}")
-            time.sleep(1)  # Delay before retry
+                print(f"Attempt {attempt+1}: Exception during sensor initialization: {e}")
+            time.sleep(2)  # Increased delay to allow sensor power-up
         print("Error: Sensor initialization failed after several attempts")
 
     def _read_byte(self, cmd):
