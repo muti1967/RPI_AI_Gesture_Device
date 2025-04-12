@@ -2,8 +2,9 @@
 # -*- coding:utf-8 -*-
 import os
 import sys
-# Insert the initialcode folder at the start of sys.path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'initialcode'))
+# Insert the absolute path for the initialcode folder into sys.path
+initialcode_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'initialcode'))
+sys.path.insert(0, initialcode_path)
 import time
 from initialcode.PAJ7620U2 import PAJ7620U2  # Use the original gesture sensor logic
 
