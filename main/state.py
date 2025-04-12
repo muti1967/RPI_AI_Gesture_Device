@@ -17,10 +17,22 @@ def enter_default_state():
     ble_active = False
     
     while True:
-        print("Default state active at", datetime.now().strftime("%H:%M:%S"))
         gesture = sensor.check_gesture()
-        
-        if gesture == "RIGHT":
+        if gesture:  # Only print when gesture is detected
+            print(f"Detected gesture: {gesture}")
+            
+        if gesture == "DOWN" and ble_active:
+            print("Down gesture detected. Turning off Bluetooth...")
+            stop_ble_advertising()
+            stop_ble_service()
+            subprocess.run(["bluetoothctl", "power", "off"])
+            bluetooth_off_file = os.path.join(NAV_AUDIO_DIR, "bluetoothoff.mp3")
+            if os.path.exists(bluetooth_off_file):
+                subprocess.run(["ffplay", "-nodisp", "-autoexit", bluetooth_off_file],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            ble_active = False
+            
+        elif gesture == "RIGHT":
             current_task = min(current_task + 1, total_tasks)
             play_nav_audio(current_task)
             
@@ -47,22 +59,6 @@ def enter_default_state():
                 bluetooth_on_file = os.path.join(NAV_AUDIO_DIR, "bluetoothon.mp3")
                 if os.path.exists(bluetooth_on_file):
                     subprocess.run(["ffplay", "-nodisp", "-autoexit", bluetooth_on_file],
-                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            
-        elif gesture == "DOWN":
-            if ble_active:
-                print("Down gesture detected. Turning off Bluetooth...")
-                # Stop BLE first
-                stop_ble_advertising()
-                # Then stop the BLE service
-                stop_ble_service()
-                # Finally power off Bluetooth
-                subprocess.run(["bluetoothctl", "power", "off"])
-                ble_active = False
-                
-                bluetooth_off_file = os.path.join(NAV_AUDIO_DIR, "bluetoothoff.mp3")
-                if os.path.exists(bluetooth_off_file):
-                    subprocess.run(["ffplay", "-nodisp", "-autoexit", bluetooth_off_file],
                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
         time.sleep(0.1)

@@ -19,10 +19,13 @@ class GestureSensor(PAJ7620U2):
 
     def check_gesture(self):
         data = self._read_byte(PAJ_INT_FLAG1)
-        if data == PAJ_UP:
-            return "UP"
-        elif data == PAJ_DOWN:
+        if data:  # Only print when data is received
+            print(f"Raw gesture data: {data}")
+        if data == PAJ_DOWN:
+            print("Down gesture detected from sensor")
             return "DOWN"
+        elif data == PAJ_UP:
+            return "UP"
         elif data == PAJ_LEFT:
             return "LEFT"
         elif data == PAJ_RIGHT:
