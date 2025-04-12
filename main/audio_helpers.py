@@ -52,3 +52,15 @@ def play_nav_audio(task_number):
             print(f"Error playing navigation audio: {e}")
     else:
         print(f"Navigation audio file not found:", nav_file)
+
+def play_pairing_confirmation():
+    pairing_file = os.path.join(NAV_AUDIO_DIR, "pairingconformation.mp3")
+    if os.path.exists(pairing_file):
+        print("Playing pairing confirmation sound...")
+        try:
+            subprocess.run(["ffplay", "-nodisp", "-autoexit", pairing_file],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception as e:
+            print(f"Error playing pairing confirmation: {e}")
+    else:
+        print("Pairing confirmation file not found:", pairing_file)

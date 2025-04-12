@@ -50,13 +50,15 @@ def enter_default_state():
                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             
         elif gesture == "DOWN":
-            if ble_active:
-                print("Down gesture detected. Stopping BLE...")
-                ble_active = not stop_ble_advertising()
-                bluetooth_off_file = os.path.join(NAV_AUDIO_DIR, "bluetoothoff.mp3")
-                if os.path.exists(bluetooth_off_file):
-                    subprocess.run(["ffplay", "-nodisp", "-autoexit", bluetooth_off_file],
-                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            print("Down gesture detected. Turning off Bluetooth...")
+            subprocess.run(["bluetoothctl", "power", "off"])
+            subprocess.run(["rfkill", "block", "bluetooth"])
+            ble_active = False
+            
+            bluetooth_off_file = os.path.join(NAV_AUDIO_DIR, "bluetoothoff.mp3")
+            if os.path.exists(bluetooth_off_file):
+                subprocess.run(["ffplay", "-nodisp", "-autoexit", bluetooth_off_file],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
         time.sleep(0.1)
 

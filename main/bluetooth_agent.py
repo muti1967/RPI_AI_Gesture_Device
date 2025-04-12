@@ -9,6 +9,7 @@ from dbus.mainloop.glib import DBusGMainLoop
 import threading
 from gi.repository import GLib
 import time
+from audio_helpers import play_pairing_confirmation
 
 class BluetoothAgent(dbus.service.Object):
     def __init__(self, bus, path):
@@ -45,6 +46,7 @@ class BluetoothAgent(dbus.service.Object):
         print(f"Pairing code: {passkey}")
         print("Automatically accepting...")
         print("="*50 + "\n")
+        play_pairing_confirmation()  # Play confirmation sound after successful pairing
         return
 
     @dbus.service.method("org.bluez.Agent1", in_signature="os", out_signature="")
