@@ -8,6 +8,7 @@ import subprocess
 import os
 from config import NAV_AUDIO_DIR
 from ble_service import start_ble_advertising, stop_ble_advertising
+import threading
 
 def enter_default_state():
     print("Entering Default State: Monitoring gestures")
@@ -33,7 +34,16 @@ def enter_default_state():
         elif gesture == "BACKWARD":
             if not ble_active:
                 print("Backward gesture detected. Starting BLE...")
-                ble_active = start_ble_advertising()
+                # Start BLE advertising in a separate thread
+                def start_ble():
+                    nonlocal ble_active
+                    ble_active = start_ble_advertising()
+                
+                ble_thread = threading.Thread(target=start_ble)
+                ble_thread.daemon = True
+                ble_thread.start()
+                
+                # Play audio feedback
                 bluetooth_on_file = os.path.join(NAV_AUDIO_DIR, "bluetoothon.mp3")
                 if os.path.exists(bluetooth_on_file):
                     subprocess.run(["ffplay", "-nodisp", "-autoexit", bluetooth_on_file],

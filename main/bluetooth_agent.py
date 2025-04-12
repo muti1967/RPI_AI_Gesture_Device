@@ -6,6 +6,9 @@ import sys
 import dbus
 import dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
+import threading
+from gi.repository import GLib
+import time
 
 class BluetoothAgent(dbus.service.Object):
     def __init__(self, bus, path):
@@ -55,14 +58,26 @@ class BluetoothAgent(dbus.service.Object):
 
 def start_bluetooth_agent():
     DBusGMainLoop(set_as_default=True)
+    mainloop = GLib.MainLoop()
+    
+    def run_loop():
+        mainloop.run()
+    
+    # Start D-Bus main loop in a separate thread
+    thread = threading.Thread(target=run_loop)
+    thread.daemon = True
+    thread.start()
+    
     bus = dbus.SystemBus()
     agent = BluetoothAgent(bus, "/test/agent")
     obj = bus.get_object("org.bluez", "/org/bluez")
     manager = dbus.Interface(obj, "org.bluez.AgentManager1")
+    
     try:
         manager.UnregisterAgent("/test/agent")
     except dbus.exceptions.DBusException as e:
         print(f"Agent not registered previously: {e}")
+        
     print(f"Using Bluetooth adapter address: {get_adapter_address()}")
     manager.RegisterAgent("/test/agent", "KeyboardDisplay")
     manager.RequestDefaultAgent("/test/agent")
