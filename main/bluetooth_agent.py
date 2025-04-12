@@ -31,12 +31,14 @@ class BluetoothAgent(dbus.service.Object):
 
     @dbus.service.method("org.bluez.Agent1", in_signature="ou", out_signature="")
     def RequestConfirmation(self, device, passkey):
-        print(f"RequestConfirmation {device} {passkey}")
+        print(f"\nConfirm pairing with device {device}")
+        print(f"Passkey: {passkey}")
+        print("Automatically accepting pairing...")
         return
 
     @dbus.service.method("org.bluez.Agent1", in_signature="os", out_signature="")
     def AuthorizeService(self, device, uuid):
-        print(f"AuthorizeService {device} {uuid}")
+        print(f"Authorizing service {uuid} for device {device}")
         return
 
     @dbus.service.method("org.bluez.Agent1", in_signature="o", out_signature="")
@@ -53,9 +55,21 @@ def start_bluetooth_agent():
         manager.UnregisterAgent("/test/agent")
     except dbus.exceptions.DBusException as e:
         print(f"Agent not registered previously: {e}")
-    manager.RegisterAgent("/test/agent", "DisplayYesNo")
+    print(f"Using Bluetooth adapter address: {get_adapter_address()}")
+    manager.RegisterAgent("/test/agent", "KeyboardDisplay")
     manager.RequestDefaultAgent("/test/agent")
     print("Bluetooth agent started for pairing")
+
+def get_adapter_address():
+    bus = dbus.SystemBus()
+    manager = dbus.Interface(bus.get_object("org.bluez", "/"),
+                           "org.freedesktop.DBus.ObjectManager")
+    objects = manager.GetManagedObjects()
+    
+    for path, interfaces in objects.items():
+        if "org.bluez.Adapter1" in interfaces:
+            return interfaces["org.bluez.Adapter1"]["Address"]
+    return "Unknown"
 
 def remove_paired_devices():
     os.system("bluetoothctl -- remove *")
