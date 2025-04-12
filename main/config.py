@@ -1,8 +1,10 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
+
+import os
 import time
 import smbus
-
+import smbus2 as smbus
 # I2C address for the sensor
 PAJ7620U2_I2C_ADDRESS = 0x73
 
