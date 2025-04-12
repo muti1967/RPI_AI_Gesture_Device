@@ -119,22 +119,15 @@ class PAJ7620U2(object):
     def check_gesture(self):
         """
         Read and process gesture data.
-        Depending on the gesture detected, perform actions like playing
-        audio or changing the navigation task.
-        A debounce delay is introduced after processing a gesture.
         """
         try:
-            # Read gesture data from register 0x43 (assumed to hold gesture flags)
-            Gesture_Data = self._read_u16(0x43)
+            # Read gesture data using PAJ_INT_FLAG1
+            Gesture_Data = self._read_u16(PAJ_INT_FLAG1)
         except Exception as e:
             print(f"Error reading gesture data: {e}")
             return 0
 
-        if Gesture_Data != 0:
-            print(f"Gesture Data: {Gesture_Data}")
-        else:
-            print("No gesture detected.")
-
+        # Process gesture only if a non-zero value is received
         if Gesture_Data == PAJ_UP:
             print("Gesture UP detected: Turning OFF Bluetooth and playing 'bluetoothoff.mp3'")
             os.system("bluetoothctl power off")
@@ -156,7 +149,7 @@ class PAJ7620U2(object):
                 task.play_nav_audio()
             else:
                 print("Gesture LEFT detected but no task available.")
-            time.sleep(0.5)  # added debounce delay for PAJ_LEFT
+            time.sleep(0.5)
         elif Gesture_Data == PAJ_RIGHT:
             self.current_task += 1
             if self.current_task > len(self.tasks):
@@ -167,7 +160,7 @@ class PAJ7620U2(object):
                 task.play_nav_audio()
             else:
                 print("Gesture RIGHT detected but no task available.")
-            time.sleep(0.5)  # added debounce delay for PAJ_RIGHT
+            time.sleep(0.5)
         elif Gesture_Data == PAJ_FORWARD:
             if 1 <= self.current_task <= len(self.tasks) and self.tasks:
                 task = self.tasks[self.current_task - 1]
@@ -184,13 +177,7 @@ class PAJ7620U2(object):
             self.play_audio(bluetooth_on_file)
             time.sleep(0.5)
 
-        # Clear gesture register to avoid stale data
-        try:
-            self._write_byte(0x43, 0)
-        except Exception as e:
-            print(f"Error clearing gesture register: {e}")
-
-        time.sleep(0.1)  # Ensure a short delay after handling gestures
+        # Return gesture data without attempting to clear the register.
         return Gesture_Data
 
 # For testing sensor functionality independently
