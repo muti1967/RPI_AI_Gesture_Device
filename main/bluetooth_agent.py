@@ -60,16 +60,6 @@ class BluetoothAgent(dbus.service.Object):
 
 def start_bluetooth_agent():
     DBusGMainLoop(set_as_default=True)
-    mainloop = GLib.MainLoop()
-    
-    def run_loop():
-        mainloop.run()
-    
-    # Start D-Bus main loop in a separate thread
-    thread = threading.Thread(target=run_loop)
-    thread.daemon = True
-    thread.start()
-    
     bus = dbus.SystemBus()
     agent = BluetoothAgent(bus, "/test/agent")
     obj = bus.get_object("org.bluez", "/org/bluez")
