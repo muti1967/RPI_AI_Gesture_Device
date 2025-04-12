@@ -1,4 +1,3 @@
-
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
 from config import PAJ7620U2_I2C_ADDRESS, Init_Gesture_Array, Init_Register_Array, PAJ_BANK_SELECT, NAV_AUDIO_DIR
@@ -148,7 +147,7 @@ class PAJ7620U2(object):
                 task.play_nav_audio()
             else:
                 print("Gesture LEFT detected but no task available.")
-            time.sleep(0.5)
+            time.sleep(0.5)  # added debounce delay for PAJ_LEFT
         elif Gesture_Data == PAJ_RIGHT:
             current_task += 1
             if current_task > len(self.tasks):
@@ -159,7 +158,7 @@ class PAJ7620U2(object):
                 task.play_nav_audio()
             else:
                 print("Gesture RIGHT detected but no task available.")
-            time.sleep(0.5)
+            time.sleep(0.5)  # added debounce delay for PAJ_RIGHT
         elif Gesture_Data == PAJ_FORWARD:
             if 1 <= current_task <= len(self.tasks) and self.tasks:
                 task = self.tasks[current_task - 1]
@@ -175,6 +174,8 @@ class PAJ7620U2(object):
             bluetooth_on_file = os.path.join(NAV_AUDIO_DIR, "bluetoothon.mp3")
             self.play_audio(bluetooth_on_file)
             time.sleep(0.5)
+
+        time.sleep(0.1)  # Ensure a short delay after handling gestures
         return Gesture_Data
 
 # For testing sensor functionality independently

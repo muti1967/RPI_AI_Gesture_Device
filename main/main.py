@@ -68,8 +68,14 @@ try:
     remove_paired_devices()
     start_bluetooth_agent()
 
-    # Enter the default state loop to continuously check for gestures.
-    state.enter_default_state()
+    # Run the default state in a separate thread to avoid blocking the main thread.
+    default_state_thread = threading.Thread(target=state.enter_default_state)
+    default_state_thread.daemon = True
+    default_state_thread.start()
+
+    # Keep the main thread alive to handle other tasks or signals.
+    while True:
+        time.sleep(1)
 
 except KeyboardInterrupt:
     print("Exiting program...")
