@@ -27,13 +27,21 @@ class BluetoothAgent(dbus.service.Object):
 
     @dbus.service.method("org.bluez.Agent1", in_signature="ouq", out_signature="")
     def DisplayPasskey(self, device, passkey, entered):
-        print(f"DisplayPasskey {device} {passkey} {entered}")
+        print("\n" + "="*50)
+        print(f"BLUETOOTH PAIRING CODE")
+        print(f"Device: {device}")
+        print(f"Code: {passkey}")
+        print(f"Digits entered: {entered}")
+        print("="*50 + "\n")
 
     @dbus.service.method("org.bluez.Agent1", in_signature="ou", out_signature="")
     def RequestConfirmation(self, device, passkey):
-        print(f"\nConfirm pairing with device {device}")
-        print(f"Passkey: {passkey}")
-        print("Automatically accepting pairing...")
+        print("\n" + "="*50)
+        print(f"BLUETOOTH PAIRING REQUEST")
+        print(f"Device: {device}")
+        print(f"Pairing code: {passkey}")
+        print("Automatically accepting...")
+        print("="*50 + "\n")
         return
 
     @dbus.service.method("org.bluez.Agent1", in_signature="os", out_signature="")

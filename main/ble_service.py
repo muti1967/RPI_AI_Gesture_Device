@@ -6,6 +6,7 @@ from bluezero import peripheral
 import time
 import os
 import subprocess
+import threading
 
 def get_adapter():
     adapter_list = list(adapter.Adapter.available())
@@ -52,12 +53,15 @@ def init_ble():
 
 def start_ble_advertising():
     ensure_bluetooth_powered()
+    global periph
     periph = init_ble()
     
     if periph:
         try:
             periph.publish()
             print("BLE advertising started...")
+            # Schedule BLE shutdown after 5 minutes
+            threading.Timer(300, stop_ble_advertising).start()
             return True
         except Exception as e:
             print(f"Error starting BLE advertising: {e}")
