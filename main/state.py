@@ -11,7 +11,7 @@ def enter_default_state():
         # The variable 'sensor' must be set from the main script.
         gesture = sensor.check_gesture()
         print("Gesture handled, continuing loop...")
-        time.sleep(0.1)  # Add a short delay to prevent blocking
+        time.sleep(1)  # Add a short delay to prevent blocking
 
 def enter_editing_state():
     print("Entering Editing State")

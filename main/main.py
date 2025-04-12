@@ -39,6 +39,9 @@ sensor = PAJ7620U2()
 # Set global variable for current_task (used by sensor.check_gesture)
 current_task = 1
 
+# Initialize tasks before creating threads
+sensor.tasks = read_task_info()
+
 # Make sensor available to state functions via module-level variable
 state.sensor = sensor
 
@@ -50,10 +53,11 @@ try:
     os.makedirs(AUDIO_FILES_DIR, exist_ok=True)
     os.makedirs(NAV_AUDIO_DIR, exist_ok=True)
 
-    # Start scheduler thread for tasks and for playing tasks 1 and 2 every minute.
-    scheduler_thread = threading.Thread(target=schedule_tasks, args=(sensor.tasks,))
-    scheduler_thread.daemon = True
-    scheduler_thread.start()
+    # Start scheduler thread for tasks
+    if sensor.tasks:  # Only start scheduler if there are tasks
+        scheduler_thread = threading.Thread(target=schedule_tasks, args=(sensor.tasks,))
+        scheduler_thread.daemon = True
+        scheduler_thread.start()
 
     # Start file observer to monitor info.txt changes.
     from watchdog.observers import Observer
