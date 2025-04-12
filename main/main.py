@@ -72,9 +72,11 @@ try:
     remove_paired_devices()
     start_bluetooth_agent()
 
-    init_ble()  # Initialize BLE before starting default state
+    # Initialize Bluetooth and BLE
+    from ble_service import ensure_bluetooth_powered
+    ensure_bluetooth_powered()  # Make sure Bluetooth is powered before starting state thread
 
-    # Run the default state in a separate thread to avoid blocking the main thread.
+    # Run the default state in a separate thread
     default_state_thread = threading.Thread(target=state.enter_default_state)
     default_state_thread.daemon = True
     default_state_thread.start()
