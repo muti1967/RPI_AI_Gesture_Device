@@ -19,10 +19,16 @@ class Task:
         nav_file = os.path.join(NAV_AUDIO_DIR, f"{self.task_number}.mp3")
         if os.path.exists(nav_file):
             try:
-                subprocess.run(["ffplay", "-nodisp", "-autoexit", nav_file],
-                               capture_output=True, text=True)
+                # Use Popen for asynchronous, non-blocking audio playback.
+                subprocess.Popen(
+                    ["ffplay", "-nodisp", "-autoexit", nav_file],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
             except Exception as e:
                 print(f"Error playing navigation audio: {e}")
+        else:
+            print("Navigation audio file not found:", nav_file)
 
 class InfoFileHandler(FileSystemEventHandler):
     def __init__(self, sensor):
@@ -38,7 +44,7 @@ class InfoFileHandler(FileSystemEventHandler):
                 schedule.clear()
                 for task in self.sensor.tasks:
                     schedule.every().day.at(task.play_time).do(play_scheduled_audio, task)
-                # Schedule the task one-two playback every minute.
+                # Schedule the task 1-2 playback every 0.5 minute.
                 schedule.every(0.5).minute.do(play_task_one_two)
                 self.last_modified = current_time
 
@@ -87,10 +93,14 @@ def play_scheduled_audio(task):
             return
         file_ext = os.path.splitext(task.audio_file)[1].lower()
         print(f"Playing audio with ffplay... ({file_ext})")
-        result = subprocess.run(["ffplay", "-nodisp", "-autoexit", task.audio_file],
-                                capture_output=True, text=True)
-        if result.returncode != 0:
-            print(f"Error playing audio with ffplay: {result.stderr}")
+        try:
+            subprocess.Popen(
+                ["ffplay", "-nodisp", "-autoexit", task.audio_file],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+        except Exception as e:
+            print(f"Error playing audio with ffplay: {e}")
             print("Ensure:")
             print("1. ffplay is installed (sudo apt-get install ffmpeg)")
             print("2. The audio system is configured")
@@ -102,8 +112,11 @@ def play_task_one_two():
     if os.path.exists(file1):
         print("Playing Task 1 (1.mp3)")
         try:
-            subprocess.run(["ffplay", "-nodisp", "-autoexit", file1],
-                           capture_output=True, text=True)
+            subprocess.Popen(
+                ["ffplay", "-nodisp", "-autoexit", file1],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
         except Exception as e:
             print(f"Error playing Task 1: {e}")
     else:
@@ -111,8 +124,11 @@ def play_task_one_two():
     if os.path.exists(file2):
         print("Playing Task 2 (2.mp3)")
         try:
-            subprocess.run(["ffplay", "-nodisp", "-autoexit", file2],
-                           capture_output=True, text=True)
+            subprocess.Popen(
+                ["ffplay", "-nodisp", "-autoexit", file2],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
         except Exception as e:
             print(f"Error playing Task 2: {e}")
     else:
