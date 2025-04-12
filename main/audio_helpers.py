@@ -28,3 +28,27 @@ def play_upload_confirmation():
             print(f"Error playing upload confirmation: {e}")
     else:
         print("Upload confirmation file not found:", file_confirm)
+
+def play_task_audio(task_number):
+    task_file = os.path.join(AUDIO_FILES_DIR, f"{task_number}.mp3")
+    if os.path.exists(task_file):
+        print(f"Playing task {task_number}")
+        try:
+            subprocess.run(["ffplay", "-nodisp", "-autoexit", task_file],
+                         capture_output=True, text=True)
+        except Exception as e:
+            print(f"Error playing task {task_number}: {e}")
+    else:
+        print(f"Task {task_number} file not found:", task_file)
+
+def play_nav_audio(task_number):
+    nav_file = os.path.join(NAV_AUDIO_DIR, f"{task_number}.mp3")
+    if os.path.exists(nav_file):
+        print(f"Playing navigation audio for task {task_number}")
+        try:
+            subprocess.run(["ffplay", "-nodisp", "-autoexit", nav_file],
+                         capture_output=True, text=True)
+        except Exception as e:
+            print(f"Error playing navigation audio: {e}")
+    else:
+        print(f"Navigation audio file not found:", nav_file)
