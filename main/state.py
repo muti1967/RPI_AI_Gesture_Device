@@ -18,19 +18,26 @@ def enter_default_state():
     
     while True:
         gesture = sensor.check_gesture()
-        if gesture:  # Only print when gesture is detected
+        if gesture:
             print(f"Detected gesture: {gesture}")
             
-        if gesture == "DOWN" and ble_active:
+        if gesture == "DOWN":
             print("Down gesture detected. Turning off Bluetooth...")
+            # Force stop all Bluetooth functionality
             stop_ble_advertising()
             stop_ble_service()
-            subprocess.run(["bluetoothctl", "power", "off"])
+            subprocess.run(["bluetoothctl", "power", "off"], check=True)
+            subprocess.run(["rfkill", "block", "bluetooth"], check=True)
+            ble_active = False
+            
+            # Play audio feedback
             bluetooth_off_file = os.path.join(NAV_AUDIO_DIR, "bluetoothoff.mp3")
             if os.path.exists(bluetooth_off_file):
-                subprocess.run(["ffplay", "-nodisp", "-autoexit", bluetooth_off_file],
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            ble_active = False
+                try:
+                    subprocess.run(["ffplay", "-nodisp", "-autoexit", bluetooth_off_file],
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                except subprocess.CalledProcessError as e:
+                    print(f"Error playing audio: {e}")
             
         elif gesture == "RIGHT":
             current_task = min(current_task + 1, total_tasks)
