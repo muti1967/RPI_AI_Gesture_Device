@@ -64,20 +64,25 @@ class PAJ7620U2(object):
         # Load tasks (for navigation audio) using task_manager's function
         self.tasks = read_task_info()
         self.current_task = 1   # Initialize current task as an instance variable
+        self.sensor_initialized = False  # New flag
         self._initialize_sensor()
 
     def _initialize_sensor(self):
-        try:
-            # Check if sensor is responsive (e.g., register 0x00 should return 0x20)
-            if self._read_byte(0x00) == 0x20:
-                print("\nGesture Sensor READY\n")
-                for reg, val in Init_Gesture_Array:
-                    self._write_byte(reg, val)
-            else:
-                print("\nGesture Sensor NOT READY - check connections\n")
-                time.sleep(2)
-        except Exception as e:
-            print(f"Error initializing sensor: {e}")
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                if self._read_byte(0x00) == 0x20:
+                    print("\nGesture Sensor READY\n")
+                    for reg, val in Init_Gesture_Array:
+                        self._write_byte(reg, val)
+                    self.sensor_initialized = True
+                    return  # successfully initialized
+                else:
+                    print(f"\nGesture Sensor NOT READY on attempt {attempt+1} - check connections\n")
+            except Exception as e:
+                print(f"Attempt {attempt+1}/{max_retries} failed: {e}")
+            time.sleep(1)  # Delay before retry
+        print("Error: Sensor initialization failed after several attempts")
 
     def _read_byte(self, cmd):
         """Read a single byte from the given register."""
