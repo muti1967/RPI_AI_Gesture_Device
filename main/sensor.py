@@ -10,7 +10,9 @@ from initialcode.PAJ7620U2 import PAJ7620U2
 
 # Wrap the sensor class for uniformity
 class GestureSensor(PAJ7620U2):
-    pass
+    def __init__(self):
+        super().__init__()
+        self.tasks = []  # Initialize empty tasks list
 
 # Export PAJ7620U2 from this module (alias GestureSensor) for compatibility with other files
 PAJ7620U2 = GestureSensor
