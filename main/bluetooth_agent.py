@@ -1,11 +1,15 @@
+#!/usr/bin/python
+# -*- coding:utf-8 -*-
+
 import os
+import sys
 import dbus
 import dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
 
 class BluetoothAgent(dbus.service.Object):
     def __init__(self, bus, path):
-        super().__init__(bus, path)
+        dbus.service.Object.__init__(self, bus, path)
 
     @dbus.service.method("org.bluez.Agent1", in_signature="", out_signature="")
     def Release(self):
@@ -52,15 +56,6 @@ def start_bluetooth_agent():
     manager.RegisterAgent("/test/agent", "DisplayYesNo")
     manager.RequestDefaultAgent("/test/agent")
     print("Bluetooth agent started for pairing")
-
-def enable_bluetooth():
-    os.system("rfkill unblock bluetooth")
-    os.system("bluetoothctl power on")
-    print("Bluetooth enabled.")
-
-def disable_bluetooth():
-    os.system("bluetoothctl power off")
-    print("Bluetooth disabled.")
 
 def remove_paired_devices():
     os.system("bluetoothctl -- remove *")
