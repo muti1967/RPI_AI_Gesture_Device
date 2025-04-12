@@ -1,8 +1,7 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
 
-import time
-import smbus
+
 from bleak import BleakScanner, BleakClient
 import RPi.GPIO as GPIO
 import os
@@ -20,7 +19,8 @@ import select
 from bluezero import peripheral
 from bluezero import adapter
 import asyncio
-
+import time
+import smbus2 as smbus
 # ----------------------------------------------------------------
 # Pre-Initialization: Clear leftover GPIO state and disable warnings
 # ----------------------------------------------------------------
@@ -525,6 +525,8 @@ periph.add_characteristic(1, 1, characteristic_uuid,
 # ----------------------------------------------------------------
 
 if __name__ == '__main__':
+    import time
+    import smbus2 as smbus
     print("\nGesture Sensor Test Program ...")
     if os.path.exists(INFO_FILE_PATH):
         print("Removing existing info.txt to ensure fresh start...")
