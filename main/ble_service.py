@@ -79,5 +79,23 @@ def stop_ble_advertising():
         print(f"Error stopping BLE: {e}")
     return False
 
+def stop_ble_service():
+    """Clean up BLE service and D-Bus connections"""
+    global periph
+    try:
+        if periph:
+            periph.unpublish()
+            periph = None
+        # Reset adapter state
+        bt_adapter = get_adapter()
+        if bt_adapter:
+            subprocess.run(["bluetoothctl", "discoverable", "off"])
+            subprocess.run(["bluetoothctl", "pairable", "off"])
+    except Exception as e:
+        print(f"Error stopping BLE service: {e}")
+    finally:
+        # Force removal of any remaining connections
+        subprocess.run(["bluetoothctl", "disconnect"])
+
 # Initialize periph as None at module level
 periph = None

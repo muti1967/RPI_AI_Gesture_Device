@@ -7,7 +7,7 @@ from audio_helpers import play_task_audio, play_nav_audio
 import subprocess
 import os
 from config import NAV_AUDIO_DIR
-from ble_service import start_ble_advertising, stop_ble_advertising
+from ble_service import start_ble_advertising, stop_ble_advertising, stop_ble_service
 import threading
 
 def enter_default_state():
@@ -50,15 +50,20 @@ def enter_default_state():
                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             
         elif gesture == "DOWN":
-            print("Down gesture detected. Turning off Bluetooth...")
-            subprocess.run(["bluetoothctl", "power", "off"])
-            subprocess.run(["rfkill", "block", "bluetooth"])
-            ble_active = False
-            
-            bluetooth_off_file = os.path.join(NAV_AUDIO_DIR, "bluetoothoff.mp3")
-            if os.path.exists(bluetooth_off_file):
-                subprocess.run(["ffplay", "-nodisp", "-autoexit", bluetooth_off_file],
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if ble_active:
+                print("Down gesture detected. Turning off Bluetooth...")
+                # Stop BLE first
+                stop_ble_advertising()
+                # Then stop the BLE service
+                stop_ble_service()
+                # Finally power off Bluetooth
+                subprocess.run(["bluetoothctl", "power", "off"])
+                ble_active = False
+                
+                bluetooth_off_file = os.path.join(NAV_AUDIO_DIR, "bluetoothoff.mp3")
+                if os.path.exists(bluetooth_off_file):
+                    subprocess.run(["ffplay", "-nodisp", "-autoexit", bluetooth_off_file],
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
         time.sleep(0.1)
 
