@@ -9,7 +9,6 @@ import os
 from config import NAV_AUDIO_DIR
 from ble_service import start_ble_advertising, stop_ble_advertising, stop_ble_service
 import threading
-from add_task import add_task
 
 def enter_default_state():
     print("Entering Default State: Monitoring gestures")
@@ -48,14 +47,6 @@ def enter_default_state():
             current_task = max(current_task - 1, 1)
             play_nav_audio(current_task)
             
-        elif gesture == "UP":
-            print("Up gesture detected. Starting task recording...")
-            new_task = add_task()  # Use default 4-second duration
-            if new_task:
-                print(f"Task {new_task} added successfully")
-                # Reload tasks after adding new one
-                sensor.tasks = read_task_info()
-        
         elif gesture == "FORWARD":
             play_task_audio(current_task)
             
