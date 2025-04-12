@@ -28,23 +28,47 @@ from config import (
 from task_manager import read_task_info
 
 from task_manager import read_task_info
+#!/usr/bin/python
+# -*- coding:utf-8 -*-
+
+import os
+import sys
+import time
+import subprocess
+import smbus2 as smbus
+
+# Import sensor configuration settings from config.py
+from config import (
+    PAJ7620U2_I2C_ADDRESS,
+    Init_Gesture_Array,
+    PAJ_UP,
+    PAJ_DOWN,
+    PAJ_LEFT,
+    PAJ_RIGHT,
+    PAJ_FORWARD,
+    PAJ_BACKWARD,
+    NAV_AUDIO_DIR
+)
+# Import task information function (for accessing navigation audio tasks)
+from task_manager import read_task_info
 
 class PAJ7620U2(object):
     def __init__(self, address=PAJ7620U2_I2C_ADDRESS):
         self._address = address
         try:
-            self._bus = smbus.SMBus(1)   # Open I2C bus 1
-            time.sleep(0.5)              # Delay for sensor power up
+            self._bus = smbus.SMBus(1)   # open I2C bus 1
+            time.sleep(0.5)              # delay for sensor power-up
         except Exception as e:
             print(f"Error opening I2C bus: {e}")
             sys.exit(1)
+
         # Load tasks (for navigation audio) using task_manager's function
         self.tasks = read_task_info()
         self._initialize_sensor()
 
     def _initialize_sensor(self):
         try:
-            # Check if sensor is available (e.g., register 0x00 should return 0x20)
+            # Check if sensor is responsive (e.g., register 0x00 should return 0x20)
             if self._read_byte(0x00) == 0x20:
                 print("\nGesture Sensor READY\n")
                 for reg, val in Init_Gesture_Array:
@@ -64,7 +88,7 @@ class PAJ7620U2(object):
         self._bus.write_byte_data(self._address, cmd, val)
 
     def _read_u16(self, cmd):
-        """Read two consecutive bytes and return the 16-bit integer."""
+        """Read two consecutive bytes and return a 16-bit value."""
         LSB = self._bus.read_byte_data(self._address, cmd)
         MSB = self._bus.read_byte_data(self._address, cmd + 1)
         return (MSB << 8) + LSB
@@ -77,7 +101,6 @@ class PAJ7620U2(object):
                 return
             file_ext = os.path.splitext(file_path)[1].lower()
             print(f"Playing audio with ffplay... ({file_ext})")
-            # Use Popen for asynchronous (non-blocking) audio playback
             subprocess.Popen(
                 ["ffplay", "-nodisp", "-autoexit", file_path],
                 stdout=subprocess.DEVNULL,
@@ -91,10 +114,11 @@ class PAJ7620U2(object):
         Read and process gesture data.
         Depending on the gesture detected, perform actions like playing
         audio or changing the navigation task.
+        A debounce delay is introduced after processing a gesture.
         """
-        global current_task  # current_task should be maintained by the main program
+        global current_task  # current_task should be maintained in your main program
         try:
-            # Read gesture from register 0x43 (this register holds gesture data)
+            # Read gesture data from register 0x43 (assumed to hold gesture flags)
             Gesture_Data = self._read_u16(0x43)
         except Exception as e:
             print(f"Error reading gesture data: {e}")
@@ -108,9 +132,11 @@ class PAJ7620U2(object):
             os.system("bluetoothctl power off")
             bluetooth_off_file = os.path.join(NAV_AUDIO_DIR, "bluetoothoff.mp3")
             self.play_audio(bluetooth_off_file)
+            time.sleep(0.5)
         elif Gesture_Data == PAJ_DOWN:
             print(f"Gesture DOWN detected: Replaying task[{current_task}]")
             self.play_audio("/home/senior/RPI_AI_Gesture_Device/audio_test.mp3")
+            time.sleep(0.5)
         elif Gesture_Data == PAJ_LEFT:
             if current_task > 1:
                 current_task -= 1
@@ -119,9 +145,10 @@ class PAJ7620U2(object):
             if current_task <= len(self.tasks) and self.tasks:
                 task = self.tasks[current_task - 1]
                 print(f"Gesture LEFT detected: Navigating to task[{current_task}]")
-                task.play_nav_audio()  # Ensure task.play_nav_audio is also non-blocking if necessary
+                task.play_nav_audio()
             else:
                 print("Gesture LEFT detected but no task available.")
+            time.sleep(0.5)
         elif Gesture_Data == PAJ_RIGHT:
             current_task += 1
             if current_task > len(self.tasks):
@@ -132,6 +159,7 @@ class PAJ7620U2(object):
                 task.play_nav_audio()
             else:
                 print("Gesture RIGHT detected but no task available.")
+            time.sleep(0.5)
         elif Gesture_Data == PAJ_FORWARD:
             if 1 <= current_task <= len(self.tasks) and self.tasks:
                 task = self.tasks[current_task - 1]
@@ -139,14 +167,17 @@ class PAJ7620U2(object):
                 self.play_audio(task.audio_file)
             else:
                 print("Gesture FORWARD detected: Invalid task index")
+            time.sleep(0.5)
         elif Gesture_Data == PAJ_BACKWARD:
             print("Gesture BACKWARD detected: Turning ON Bluetooth and playing 'bluetoothon.mp3'")
             os.system("rfkill unblock bluetooth")
             os.system("bluetoothctl power on")
             bluetooth_on_file = os.path.join(NAV_AUDIO_DIR, "bluetoothon.mp3")
             self.play_audio(bluetooth_on_file)
+            time.sleep(0.5)
         return Gesture_Data
 
+# For testing sensor functionality independently
 if __name__ == '__main__':
     print("\nGesture Sensor Test Program ...\n")
     sensor = PAJ7620U2()
