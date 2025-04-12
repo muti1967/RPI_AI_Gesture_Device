@@ -132,6 +132,8 @@ class PAJ7620U2(object):
 
         if Gesture_Data != 0:
             print(f"Gesture Data: {Gesture_Data}")
+        else:
+            print("No gesture detected.")
 
         if Gesture_Data == PAJ_UP:
             print("Gesture UP detected: Turning OFF Bluetooth and playing 'bluetoothoff.mp3'")
@@ -181,6 +183,12 @@ class PAJ7620U2(object):
             bluetooth_on_file = os.path.join(NAV_AUDIO_DIR, "bluetoothon.mp3")
             self.play_audio(bluetooth_on_file)
             time.sleep(0.5)
+
+        # Clear gesture register to avoid stale data
+        try:
+            self._write_byte(0x43, 0)
+        except Exception as e:
+            print(f"Error clearing gesture register: {e}")
 
         time.sleep(0.1)  # Ensure a short delay after handling gestures
         return Gesture_Data
