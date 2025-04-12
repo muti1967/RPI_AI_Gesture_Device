@@ -5,6 +5,8 @@ import time
 from datetime import datetime
 from audio_helpers import play_task_audio, play_nav_audio
 import subprocess
+import os
+from config import NAV_AUDIO_DIR
 
 def enter_default_state():
     print("Entering Default State: Monitoring gestures")
@@ -29,10 +31,18 @@ def enter_default_state():
         elif gesture == "BACKWARD":
             subprocess.run(["bluetoothctl", "power", "on"])
             print("Bluetooth turned ON")
+            bluetooth_on_file = os.path.join(NAV_AUDIO_DIR, "bluetoothon.mp3")
+            if os.path.exists(bluetooth_on_file):
+                subprocess.run(["ffplay", "-nodisp", "-autoexit", bluetooth_on_file],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             
         elif gesture == "DOWN":
             subprocess.run(["bluetoothctl", "power", "off"])
             print("Bluetooth turned OFF")
+            bluetooth_off_file = os.path.join(NAV_AUDIO_DIR, "bluetoothoff.mp3")
+            if os.path.exists(bluetooth_off_file):
+                subprocess.run(["ffplay", "-nodisp", "-autoexit", bluetooth_off_file],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
         time.sleep(0.1)
 
