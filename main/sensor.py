@@ -63,6 +63,7 @@ class PAJ7620U2(object):
 
         # Load tasks (for navigation audio) using task_manager's function
         self.tasks = read_task_info()
+        self.current_task = 1   # Initialize current task as an instance variable
         self._initialize_sensor()
 
     def _initialize_sensor(self):
@@ -115,7 +116,6 @@ class PAJ7620U2(object):
         audio or changing the navigation task.
         A debounce delay is introduced after processing a gesture.
         """
-        global current_task  # current_task should be maintained in your main program
         try:
             # Read gesture data from register 0x43 (assumed to hold gesture flags)
             Gesture_Data = self._read_u16(0x43)
@@ -133,36 +133,36 @@ class PAJ7620U2(object):
             self.play_audio(bluetooth_off_file)
             time.sleep(0.5)
         elif Gesture_Data == PAJ_DOWN:
-            print(f"Gesture DOWN detected: Replaying task[{current_task}]")
+            print(f"Gesture DOWN detected: Replaying task[{self.current_task}]")
             self.play_audio("/home/senior/RPI_AI_Gesture_Device/audio_test.mp3")
             time.sleep(0.5)
         elif Gesture_Data == PAJ_LEFT:
-            if current_task > 1:
-                current_task -= 1
+            if self.current_task > 1:
+                self.current_task -= 1
             else:
-                current_task = 1
-            if current_task <= len(self.tasks) and self.tasks:
-                task = self.tasks[current_task - 1]
-                print(f"Gesture LEFT detected: Navigating to task[{current_task}]")
+                self.current_task = 1
+            if self.current_task <= len(self.tasks) and self.tasks:
+                task = self.tasks[self.current_task - 1]
+                print(f"Gesture LEFT detected: Navigating to task[{self.current_task}]")
                 task.play_nav_audio()
             else:
                 print("Gesture LEFT detected but no task available.")
             time.sleep(0.5)  # added debounce delay for PAJ_LEFT
         elif Gesture_Data == PAJ_RIGHT:
-            current_task += 1
-            if current_task > len(self.tasks):
-                current_task = len(self.tasks)
-            if current_task <= len(self.tasks) and self.tasks:
-                task = self.tasks[current_task - 1]
-                print(f"Gesture RIGHT detected: Navigating to task[{current_task}]")
+            self.current_task += 1
+            if self.current_task > len(self.tasks):
+                self.current_task = len(self.tasks)
+            if self.current_task <= len(self.tasks) and self.tasks:
+                task = self.tasks[self.current_task - 1]
+                print(f"Gesture RIGHT detected: Navigating to task[{self.current_task}]")
                 task.play_nav_audio()
             else:
                 print("Gesture RIGHT detected but no task available.")
             time.sleep(0.5)  # added debounce delay for PAJ_RIGHT
         elif Gesture_Data == PAJ_FORWARD:
-            if 1 <= current_task <= len(self.tasks) and self.tasks:
-                task = self.tasks[current_task - 1]
-                print(f"Gesture FORWARD detected: Playing audio for task[{current_task}]")
+            if 1 <= self.current_task <= len(self.tasks) and self.tasks:
+                task = self.tasks[self.current_task - 1]
+                print(f"Gesture FORWARD detected: Playing audio for task[{self.current_task}]")
                 self.play_audio(task.audio_file)
             else:
                 print("Gesture FORWARD detected: Invalid task index")
