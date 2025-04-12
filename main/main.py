@@ -24,7 +24,7 @@ from audio_helpers import play_bootup_sound
 from task_manager import schedule_tasks, read_task_info, InfoFileHandler
 from sensor import PAJ7620U2
 from bluetooth_agent import remove_paired_devices, start_bluetooth_agent
-from ble_service import periph  # BLE service initialization
+from ble_service import init_ble  # Update import
 from ble_pairing import enter_pairing_mode
 import state
 
@@ -71,6 +71,8 @@ try:
 
     remove_paired_devices()
     start_bluetooth_agent()
+
+    init_ble()  # Initialize BLE before starting default state
 
     # Run the default state in a separate thread to avoid blocking the main thread.
     default_state_thread = threading.Thread(target=state.enter_default_state)

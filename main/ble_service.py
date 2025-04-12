@@ -1,43 +1,47 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
 
+from bluezero import adapter
 from bluezero import peripheral
 import time
 import os
 
-def read_callback():
-    print("iPhone is reading data...")
-    return [0x42]
-
-def write_callback(value):
-    print(f"Received from iPhone: {value}")
+# Get the first available Bluetooth adapter
+adapter_list = list(adapter.Adapter.available())
+if adapter_list:
+    adapter_address = adapter_list[0].address
+else:
+    adapter_address = None
 
 # BLE characteristic and service UUIDs
-char_uuid = '12345678-1234-5678-1234-56789abcdef1'
-service_uuid = '12345678-1234-5678-1234-56789abcdef0'
+SERVICE_UUID = '12345678-1234-5678-1234-56789abcdef0'
+CHAR_UUID = '12345678-1234-5678-1234-56789abcdef1'
 
-# Initialize BLE characteristic
-my_char = peripheral.Characteristic(char_uuid,
-                                  ['read', 'write'],
-                                  read_callback,
-                                  write_callback)
+# Create BLE peripheral instance
+periph = peripheral.Peripheral(adapter_address, local_name='RPi-BLE')
 
-# Initialize BLE service
-my_service = peripheral.Service(service_uuid, True)
-my_service.add_characteristic(my_char)
-
-# Initialize BLE peripheral
-ble_peripheral = peripheral.Peripheral(adapter_addr=None,
-                                     local_name='RPi-BLE',
-                                     services=[my_service])
+def init_ble():
+    # Add service
+    periph.add_service(service_id=1, uuid=SERVICE_UUID, primary=True)
+    
+    # Add characteristic
+    periph.add_characteristic(service_id=1, 
+                            char_id=1, 
+                            uuid=CHAR_UUID,
+                            value=[0x00],
+                            notifying=False,
+                            flags=['read', 'write'],
+                            read_callback=lambda: [0x42],
+                            write_callback=lambda x: print(f"Received: {x}"))
 
 def start_ble_advertising():
     os.system("rfkill unblock bluetooth")
     os.system("bluetoothctl power on")
-    time.sleep(1)  # Wait for Bluetooth to initialize
+    time.sleep(1)
     
     try:
-        ble_peripheral.publish()
+        init_ble()
+        periph.publish()
         print("BLE advertising started...")
         return True
     except Exception as e:
@@ -46,9 +50,12 @@ def start_ble_advertising():
 
 def stop_ble_advertising():
     try:
-        ble_peripheral.unpublish()
+        periph.unpublish()
         print("BLE advertising stopped")
         return True
     except Exception as e:
         print(f"Error stopping BLE: {e}")
         return False
+
+# Initialize BLE on import
+init_ble()
