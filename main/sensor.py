@@ -77,6 +77,9 @@ class PAJ7620U2(object):
                     print("\nGesture Sensor READY\n")
                     for reg, val in Init_Gesture_Array:
                         self._write_byte(reg, val)
+                    # Switch back to Bank 0 after gesture initialization
+                    self._write_byte(PAJ_BANK_SELECT, 0)
+                    time.sleep(0.1)  # Allow sensor to settle
                     self.sensor_initialized = True
                     return  # Successfully initialized
                 else:
