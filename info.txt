@@ -196,5 +196,3 @@ if __name__ == '__main__':
         time.sleep(0.05)
         sensor.check_gesture()
 
-restore v 9:17 
-343c18a

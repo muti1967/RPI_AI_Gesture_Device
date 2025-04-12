@@ -36,11 +36,13 @@ def init_ble():
         # Create BLE peripheral instance
         periph = peripheral.Peripheral(adapter_address=bt_adapter.address, local_name='RPi-BLE')
         
-        # Add service (removed service_id parameter)
-        periph.add_service(uuid=SERVICE_UUID, primary=True)
+        # Add service with required srv_id
+        periph.add_service(srv_id=1, uuid=SERVICE_UUID, primary=True)
         
-        # Add characteristic (removed char_id and service_id parameters)
-        periph.add_characteristic(uuid=CHAR_UUID,
+        # Add characteristic with required srv_id and chr_id
+        periph.add_characteristic(srv_id=1,
+                                chr_id=1,
+                                uuid=CHAR_UUID,
                                 value=[0x00],
                                 notifying=False,
                                 flags=['read', 'write'],
