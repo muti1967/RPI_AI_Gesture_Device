@@ -17,66 +17,57 @@ def enter_default_state():
     ble_active = False
     
     while True:
-        try:
-            gesture = sensor.check_gesture()
-            if gesture:
-                print(f"Detected gesture: {gesture}")
+        gesture = sensor.check_gesture()
+        if gesture:
+            print(f"Detected gesture: {gesture}")
+            
+        if gesture == "DOWN":
+            print("Down gesture detected. Turning off Bluetooth...")
+            # Force stop all Bluetooth functionality
+            stop_ble_advertising()
+            stop_ble_service()
+            subprocess.run(["bluetoothctl", "power", "off"], check=True)
+            subprocess.run(["rfkill", "block", "bluetooth"], check=True)
+            ble_active = False
+            
+            # Play audio feedback
+            bluetooth_off_file = os.path.join(NAV_AUDIO_DIR, "bluetoothoff.mp3")
+            if os.path.exists(bluetooth_off_file):
+                try:
+                    subprocess.run(["ffplay", "-nodisp", "-autoexit", bluetooth_off_file],
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                except subprocess.CalledProcessError as e:
+                    print(f"Error playing audio: {e}")
+            
+        elif gesture == "RIGHT":
+            current_task = min(current_task + 1, total_tasks)
+            play_nav_audio(current_task)
+            
+        elif gesture == "LEFT":
+            current_task = max(current_task - 1, 1)
+            play_nav_audio(current_task)
+            
+        elif gesture == "FORWARD":
+            play_task_audio(current_task)
+            
+        elif gesture == "BACKWARD":
+            if not ble_active:
+                print("Backward gesture detected. Starting BLE...")
+                # Start BLE advertising in a separate thread
+                def start_ble():
+                    nonlocal ble_active
+                    ble_active = start_ble_advertising()
                 
-            if gesture == "DOWN":
-                print("Down gesture detected. Turning off Bluetooth...")
-                stop_ble_advertising()
-                stop_ble_service()
-                # Add delay to ensure cleanup completes
-                time.sleep(1)
-                subprocess.run(["bluetoothctl", "power", "off"], check=False)
-                ble_active = False
+                ble_thread = threading.Thread(target=start_ble)
+                ble_thread.daemon = True
+                ble_thread.start()
                 
                 # Play audio feedback
-                bluetooth_off_file = os.path.join(NAV_AUDIO_DIR, "bluetoothoff.mp3")
-                if os.path.exists(bluetooth_off_file):
-                    try:
-                        subprocess.run(["ffplay", "-nodisp", "-autoexit", bluetooth_off_file],
-                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    except subprocess.CalledProcessError as e:
-                        print(f"Error playing audio: {e}")
-                
-            elif gesture == "RIGHT":
-                current_task = min(current_task + 1, total_tasks)
-                play_nav_audio(current_task)
-                
-            elif gesture == "LEFT":
-                current_task = max(current_task - 1, 1)
-                play_nav_audio(current_task)
-                
-            elif gesture == "FORWARD":
-                play_task_audio(current_task)
-                
-            elif gesture == "BACKWARD":
-                if not ble_active:
-                    print("Backward gesture detected. Starting BLE...")
-                    try:
-                        def start_ble():
-                            nonlocal ble_active
-                            ble_active = start_ble_advertising()
-                        
-                        ble_thread = threading.Thread(target=start_ble)
-                        ble_thread.daemon = True
-                        ble_thread.start()
-                        
-                        # Play audio feedback
-                        bluetooth_on_file = os.path.join(NAV_AUDIO_DIR, "bluetoothon.mp3")
-                        if os.path.exists(bluetooth_on_file):
-                            subprocess.run(["ffplay", "-nodisp", "-autoexit", bluetooth_on_file],
-                                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    except Exception as e:
-                        print(f"Error starting BLE: {e}")
-                        ble_active = False
-                        
-        except Exception as e:
-            print(f"Error in default state (continuing): {e}")
-            time.sleep(0.1)
-            continue
-            
+                bluetooth_on_file = os.path.join(NAV_AUDIO_DIR, "bluetoothon.mp3")
+                if os.path.exists(bluetooth_on_file):
+                    subprocess.run(["ffplay", "-nodisp", "-autoexit", bluetooth_on_file],
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        
         time.sleep(0.1)
 
 def enter_editing_state():

@@ -69,7 +69,6 @@ try:
     print(f"Total number of tasks: {len(sensor.tasks)}")
     print("Current task: 1")
 
-    # Initialize Bluetooth components first
     remove_paired_devices()
     start_bluetooth_agent()
 
@@ -77,18 +76,14 @@ try:
     from ble_service import ensure_bluetooth_powered
     ensure_bluetooth_powered()  # Make sure Bluetooth is powered before starting state thread
 
-    # Start the default state thread last
+    # Run the default state in a separate thread
     default_state_thread = threading.Thread(target=state.enter_default_state)
     default_state_thread.daemon = True
     default_state_thread.start()
 
-    # Mainloop - handle exceptions and keep program running
+    # Keep the main thread alive to handle other tasks or signals.
     while True:
-        try:
-            time.sleep(0.1)
-        except dbus.exceptions.DBusException as e:
-            print(f"DBus error (continuing): {e}")
-            continue
+        time.sleep(1)
 
 except KeyboardInterrupt:
     print("Exiting program...")
