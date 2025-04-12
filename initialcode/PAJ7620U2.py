@@ -2,6 +2,7 @@
 # -*- coding:utf-8 -*-
 import time
 import smbus
+from config import *
 
 #i2c address
 PAJ7620U2_I2C_ADDRESS   = 0x73
@@ -168,49 +169,41 @@ Init_Gesture_Array = (
 	(0x42,0x01),
 )
 class PAJ7620U2(object):
-	def __init__(self,address=PAJ7620U2_I2C_ADDRESS):
-		self._address = address
-		self._bus = smbus.SMBus(1)
-		time.sleep(0.5)
-		if self._read_byte(0x00) == 0x20:
-			print("\nGesture Sensor OK\n")
-			for num in range(len(Init_Register_Array)):
-				self._write_byte(Init_Register_Array[num][0],Init_Register_Array[num][1])
-		else:
-			print("\nGesture Sensor Error\n")
-		self._write_byte(PAJ_BANK_SELECT, 0)
-		for num in range(len(Init_Gesture_Array)):
-				self._write_byte(Init_Gesture_Array[num][0],Init_Gesture_Array[num][1])
-	def _read_byte(self,cmd):
-		return self._bus.read_byte_data(self._address,cmd)
-	
-	def _read_u16(self,cmd):
-		LSB = self._bus.read_byte_data(self._address,cmd)
-		MSB = self._bus.read_byte_data(self._address,cmd+1)
-		return (MSB	<< 8) + LSB
-	def _write_byte(self,cmd,val):
-		self._bus.write_byte_data(self._address,cmd,val)
-	def check_gesture(self):
-		Gesture_Data=self._read_u16(PAJ_INT_FLAG1)
-		if Gesture_Data == PAJ_UP:
-			print("Up\r\n")
-		elif Gesture_Data == PAJ_DOWN:
-			print("Down\r\n")
-		elif Gesture_Data == PAJ_LEFT:
-			print("Left\r\n")	
-		elif Gesture_Data == PAJ_RIGHT:
-			print("Right\r\n")	
-		elif Gesture_Data == PAJ_FORWARD:
-			print("Forward\r\n")	
-		elif Gesture_Data == PAJ_BACKWARD:
-			print("Backward\r\n")
-		elif Gesture_Data == PAJ_CLOCKWISE:
-			print("Clockwise\r\n")	
-		elif Gesture_Data == PAJ_COUNT_CLOCKWISE:
-			print("AntiClockwise\r\n")	
-		elif Gesture_Data == PAJ_WAVE:
-			print("Wave\r\n")	
-		return Gesture_Data
+    def __init__(self):
+        self.bus = smbus.SMBus(1)
+        self.tasks = []
+        time.sleep(0.5)  # Wait for device initialization
+        self._init_gesture_sensor()
+
+    def _init_gesture_sensor(self):
+        # Initialize the gesture sensor with configuration arrays
+        for val in Init_Register_Array:
+            self.bus.write_byte_data(PAJ7620U2_I2C_ADDRESS, val[0], val[1])
+        print("Gesture Sensor initialized")
+
+    def _read_byte(self, cmd):
+        return self.bus.read_byte_data(PAJ7620U2_I2C_ADDRESS, cmd)
+
+    def check_gesture(self):
+        try:
+            data = self._read_byte(PAJ_INT_FLAG1)
+            if data == PAJ_UP:
+                print("Up gesture detected")
+                return "UP"
+            elif data == PAJ_DOWN:
+                print("Down gesture detected")
+                return "DOWN"
+            elif data == PAJ_LEFT:
+                print("Left gesture detected")
+                return "LEFT"
+            elif data == PAJ_RIGHT:
+                print("Right gesture detected")
+                return "RIGHT"
+            else:
+                return None
+        except Exception as e:
+            print(f"Error reading gesture: {e}")
+            return None
 
 if __name__ == '__main__':
 	
@@ -223,7 +216,7 @@ if __name__ == '__main__':
 	while True:
 		time.sleep(0.05)
 		paj7620u2.check_gesture()
-		
+
 
 
 
