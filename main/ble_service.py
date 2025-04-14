@@ -85,3 +85,52 @@ def init_ble():
     except Exception as e:
         print(f"Error initializing BLE: {e}")
         return None
+
+periph = None  # Global variable to track peripheral instance
+
+def start_ble_advertising():
+    """Start BLE advertising"""
+    global periph
+    ensure_bluetooth_powered()
+    periph = init_ble()
+    
+    if periph:
+        try:
+            periph.publish()
+            print("BLE advertising started...")
+            # Schedule BLE shutdown after 5 minutes
+            threading.Timer(300, stop_ble_advertising).start()
+            return True
+        except Exception as e:
+            print(f"Error starting BLE advertising: {e}")
+    return False
+
+def stop_ble_advertising():
+    """Stop BLE advertising"""
+    global periph
+    try:
+        if periph:
+            periph.unpublish()
+            print("BLE advertising stopped")
+            return True
+    except Exception as e:
+        print(f"Error stopping BLE: {e}")
+    return False
+
+def stop_ble_service():
+    """Clean up BLE service"""
+    global periph
+    try:
+        if periph:
+            periph.unpublish()
+            periph = None
+        # Reset adapter state
+        bt_adapter = get_adapter()
+        if bt_adapter:
+            subprocess.run(["bluetoothctl", "discoverable", "off"])
+            subprocess.run(["bluetoothctl", "pairable", "off"])
+    except Exception as e:
+        print(f"Error stopping BLE service: {e}")
+    finally:
+        # Force removal of any remaining connections
+        subprocess.run(["bluetoothctl", "disconnect"])
