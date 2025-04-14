@@ -42,5 +42,11 @@ def handle_file_transfer(data):
         # Clean up
         shutil.rmtree(temp_dir)
         
-        # Play the upload confirmation audio
-        upload_audio = os.path.join(os.path.expanduser('~'), 'R
+        # Play confirmation sound
+        from audio_helpers import play_upload_confirmation
+        play_upload_confirmation()
+        
+        return True
+    except Exception as e:
+        print(f"Error processing received files: {e}")
+        return False
