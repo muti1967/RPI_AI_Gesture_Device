@@ -50,3 +50,38 @@ def handle_file_transfer(data):
     except Exception as e:
         print(f"Error processing received files: {e}")
         return False
+
+def init_ble():
+    """Initialize BLE peripheral with file transfer service"""
+    ensure_bluetooth_powered()
+    
+    bt_adapter = get_adapter()
+    if not bt_adapter:
+        print("No Bluetooth adapter found")
+        return None
+        
+    try:
+        # Create BLE peripheral instance
+        periph = peripheral.Peripheral(adapter_address=bt_adapter.address, local_name='RPi-BLE')
+        
+        # Add service with required srv_id
+        periph.add_service(srv_id=1, uuid=SERVICE_UUID, primary=True)
+        
+        # Add characteristic with required srv_id and chr_id
+        periph.add_characteristic(srv_id=1,
+                                chr_id=1,
+                                uuid=CHAR_UUID,
+                                value=[0x00],
+                                notifying=False,
+                                flags=['read', 'write'],
+                                read_callback=lambda: [0x42],
+                                write_callback=handle_file_transfer)
+        
+        # Start advertising
+        periph.publish()
+        print("BLE service initialized and advertising")
+        return periph
+        
+    except Exception as e:
+        print(f"Error initializing BLE: {e}")
+        return None
