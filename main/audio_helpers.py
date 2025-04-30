@@ -30,16 +30,25 @@ def play_upload_confirmation():
         print("Upload confirmation file not found:", file_confirm)
 
 def play_task_audio(task_number):
-    task_file = os.path.join(AUDIO_FILES_DIR, f"{task_number}.mp3")
-    if os.path.exists(task_file):
-        print(f"Playing task {task_number}")
+    task_file_mp3 = os.path.join(AUDIO_FILES_DIR, f"{task_number}.mp3")
+    task_file_m4a = os.path.join(AUDIO_FILES_DIR, f"{task_number}.m4a")
+    
+    if os.path.exists(task_file_mp3):
+        print(f"Playing task {task_number} (MP3)")
         try:
-            subprocess.run(["ffplay", "-nodisp", "-autoexit", task_file],
-                         capture_output=True, text=True)
+            subprocess.run(["ffplay", "-nodisp", "-autoexit", task_file_mp3],
+                           capture_output=True, text=True)
         except Exception as e:
-            print(f"Error playing task {task_number}: {e}")
+            print(f"Error playing task {task_number} (MP3): {e}")
+    elif os.path.exists(task_file_m4a):
+        print(f"Playing task {task_number} (M4A)")
+        try:
+            subprocess.run(["ffplay", "-nodisp", "-autoexit", task_file_m4a],
+                           capture_output=True, text=True)
+        except Exception as e:
+            print(f"Error playing task {task_number} (M4A): {e}")
     else:
-        print(f"Task {task_number} file not found:", task_file)
+        print(f"Task {task_number} file not found (MP3 or M4A).")
 
 def play_nav_audio(task_number):
     nav_file = os.path.join(NAV_AUDIO_DIR, f"{task_number}.mp3")

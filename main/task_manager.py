@@ -89,8 +89,14 @@ def play_scheduled_audio(task):
     if not task.completed:
         print(f"Playing task {task.task_number}: {task.audio_file}")
         if not os.path.exists(task.audio_file):
-            print(f"Error: Audio file not found: {task.audio_file}")
-            return
+            # Check for .m4a alternative
+            m4a_file = os.path.splitext(task.audio_file)[0] + ".m4a"
+            if os.path.exists(m4a_file):
+                task.audio_file = m4a_file
+            else:
+                print(f"Error: Audio file not found: {task.audio_file}")
+                return
+        
         file_ext = os.path.splitext(task.audio_file)[1].lower()
         print(f"Playing audio with ffplay... ({file_ext})")
         try:
