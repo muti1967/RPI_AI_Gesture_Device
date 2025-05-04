@@ -51,16 +51,33 @@ def play_task_audio(task_number):
         print(f"Task {task_number} file not found (MP3 or M4A).")
 
 def play_nav_audio(task_number):
-    nav_file = os.path.join(NAV_AUDIO_DIR, f"{task_number}.mp3")
-    if os.path.exists(nav_file):
-        print(f"Playing navigation audio for task {task_number}")
+    nav_file_mp3 = os.path.join(NAV_AUDIO_DIR, f"{task_number}.mp3")
+    nav_file_m4a = os.path.join(NAV_AUDIO_DIR, f"{task_number}.m4a")
+    generic_nav_file = os.path.join(NAV_AUDIO_DIR, "task.mp3")
+
+    if os.path.exists(nav_file_mp3):
+        print(f"Playing navigation audio for task {task_number} (MP3)")
         try:
-            subprocess.run(["ffplay", "-nodisp", "-autoexit", nav_file],
-                         capture_output=True, text=True)
+            subprocess.run(["ffplay", "-nodisp", "-autoexit", nav_file_mp3],
+                           capture_output=True, text=True)
         except Exception as e:
             print(f"Error playing navigation audio: {e}")
+    elif os.path.exists(nav_file_m4a):
+        print(f"Playing navigation audio for task {task_number} (M4A)")
+        try:
+            subprocess.run(["ffplay", "-nodisp", "-autoexit", nav_file_m4a],
+                           capture_output=True, text=True)
+        except Exception as e:
+            print(f"Error playing navigation audio: {e}")
+    elif os.path.exists(generic_nav_file):
+        print(f"Playing generic navigation audio for task {task_number}")
+        try:
+            subprocess.run(["ffplay", "-nodisp", "-autoexit", generic_nav_file],
+                           capture_output=True, text=True)
+        except Exception as e:
+            print(f"Error playing generic navigation audio: {e}")
     else:
-        print(f"Navigation audio file not found:", nav_file)
+        print(f"No navigation audio found for task {task_number} (checked: {nav_file_mp3}, {nav_file_m4a}, {generic_nav_file})")
 
 def play_pairing_confirmation():
     pairing_file = os.path.join(NAV_AUDIO_DIR, "pairingconformation.mp3")
