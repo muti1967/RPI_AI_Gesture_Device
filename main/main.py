@@ -31,6 +31,15 @@ import state
 print("\nGesture Sensor Test Program ...")
 from config import INFO_FILE_PATH, AUDIO_FILES_DIR, NAV_AUDIO_DIR
 
+# Debug: Print contents of NAV_AUDIO_DIR to verify audio files are present
+print(f"Checking navigation audio directory: {NAV_AUDIO_DIR}")
+if os.path.exists(NAV_AUDIO_DIR):
+    print("Files in navigation audio directory:")
+    for f in os.listdir(NAV_AUDIO_DIR):
+        print("  ", f)
+else:
+    print("Navigation audio directory does not exist!")
+
 # Ensure directories exist before attempting to remove info.txt
 os.makedirs(os.path.dirname(INFO_FILE_PATH), exist_ok=True)
 os.makedirs(AUDIO_FILES_DIR, exist_ok=True)
