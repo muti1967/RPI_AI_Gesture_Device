@@ -3,11 +3,7 @@
 
 import os
 import subprocess
-
-# Always use /home/seniora as the base directory for audio files
-SENIORA_BASE = "/home/seniora/RPI_AI_Gesture_Device/finalv/audio_files"
-NAV_AUDIO_DIR = os.path.join(SENIORA_BASE, "navaudio")
-AUDIO_FILES_DIR = SENIORA_BASE
+from config import NAV_AUDIO_DIR, AUDIO_FILES_DIR  # Add AUDIO_FILES_DIR import
 
 def play_bootup_sound():
     file_bootup = os.path.join(NAV_AUDIO_DIR, "bootup.mp3")

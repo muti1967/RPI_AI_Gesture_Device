@@ -9,9 +9,6 @@ import schedule
 import subprocess
 from datetime import datetime
 import RPi.GPIO as GPIO
-import logging
-
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 
 # ----------------------------------------------------------------
 # Pre-Initialization: Clear leftover GPIO state and disable warnings
@@ -32,32 +29,11 @@ from ble_pairing import enter_pairing_mode
 import state
 
 print("\nGesture Sensor Test Program ...")
-logging.debug("Starting Gesture Reminder Script")
-
 from config import INFO_FILE_PATH, AUDIO_FILES_DIR, NAV_AUDIO_DIR
 
-# Debug: Print contents of NAV_AUDIO_DIR to verify audio files are present
-logging.debug(f"Checking navigation audio directory: {NAV_AUDIO_DIR}")
-if os.path.exists(NAV_AUDIO_DIR):
-    logging.debug("Files in navigation audio directory:")
-    for f in os.listdir(NAV_AUDIO_DIR):
-        logging.debug(f"  {f}")
-else:
-    logging.warning("Navigation audio directory does not exist!")
-
-# Ensure directories exist before attempting to remove info.txt
-os.makedirs(os.path.dirname(INFO_FILE_PATH), exist_ok=True)
-os.makedirs(AUDIO_FILES_DIR, exist_ok=True)
-os.makedirs(NAV_AUDIO_DIR, exist_ok=True)
-
 if os.path.exists(INFO_FILE_PATH):
-    try:
-        print("Removing existing info.txt to ensure fresh start...")
-        os.remove(INFO_FILE_PATH)
-    except PermissionError as e:
-        print(f"Permission denied when removing {INFO_FILE_PATH}: {e}")
-    except Exception as e:
-        print(f"Error removing {INFO_FILE_PATH}: {e}")
+    print("Removing existing info.txt to ensure fresh start...")
+    os.remove(INFO_FILE_PATH)
 
 sensor = PAJ7620U2()
 # Set global variable for current_task (used by sensor.check_gesture)
@@ -73,6 +49,10 @@ state.sensor = sensor
 play_bootup_sound()
 
 try:
+    os.makedirs(os.path.dirname(INFO_FILE_PATH), exist_ok=True)
+    os.makedirs(AUDIO_FILES_DIR, exist_ok=True)
+    os.makedirs(NAV_AUDIO_DIR, exist_ok=True)
+
     # Start scheduler thread for tasks
     if sensor.tasks:  # Only start scheduler if there are tasks
         scheduler_thread = threading.Thread(target=schedule_tasks, args=(sensor.tasks,))
@@ -106,14 +86,9 @@ try:
         time.sleep(1)
 
 except KeyboardInterrupt:
-    logging.info("Exiting program due to KeyboardInterrupt...")
+    print("Exiting program...")
     observer.stop()
-except Exception as e:
-    logging.exception(f"Unhandled exception in main loop: {e}")
-    # Optionally, keep the script alive for debugging:
-    while True:
-        time.sleep(60)
 finally:
     observer.join()
-    logging.info("Cleaning up GPIO")
+    print("Cleaning up GPIO")
     GPIO.cleanup()

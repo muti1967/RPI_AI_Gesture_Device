@@ -183,11 +183,8 @@ Init_Gesture_Array = (
 # This configuration module makes these values available for import.
 # -----------------------------------------------------------------------------
 
-# Dynamically discover the current user's home directory
-HOME_DIR = os.path.expanduser("~")
+HOME_DIR = "/home/seniora"  # Hardcoded for correct paths under sudo
 BASE_DIR = os.path.join(HOME_DIR, "RPI_AI_Gesture_Device")
-MAIN_DIR = os.path.join(BASE_DIR, "main")
-NAV_AUDIO_DIR = os.path.join(BASE_DIR, "finalv", "audio_files", "navaudio")
-INFO_DIR = os.path.join(BASE_DIR, "finalv", "info")
-INFO_FILE_PATH = os.path.join(INFO_DIR, "info.txt")
-AUDIO_FILES_DIR = os.path.join(BASE_DIR, "finalv", "audio_files")
+INFO_FILE_PATH = os.path.join(BASE_DIR, "finalv/info/info.txt")
+AUDIO_FILES_DIR = os.path.join(BASE_DIR, "finalv/audio_files")
+NAV_AUDIO_DIR = os.path.join(AUDIO_FILES_DIR, "navaudio")
