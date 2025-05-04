@@ -183,9 +183,9 @@ Init_Gesture_Array = (
 # This configuration module makes these values available for import.
 # -----------------------------------------------------------------------------
 
-HOME_DIR = "/home/senior"  # Hardcoded for correct paths under sudo
+# Use the current user's home directory dynamically
+HOME_DIR = os.path.expanduser("~")  # Dynamically get the home directory
 BASE_DIR = os.path.join(HOME_DIR, "RPI_AI_Gesture_Device")
 INFO_FILE_PATH = os.path.join(BASE_DIR, "finalv/info/info.txt")
 AUDIO_FILES_DIR = os.path.join(BASE_DIR, "finalv/audio_files")
-# If your files are in a different directory, update this:
 NAV_AUDIO_DIR = os.path.join(AUDIO_FILES_DIR, "navaudio")
