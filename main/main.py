@@ -31,9 +31,19 @@ import state
 print("\nGesture Sensor Test Program ...")
 from config import INFO_FILE_PATH, AUDIO_FILES_DIR, NAV_AUDIO_DIR
 
+# Ensure directories exist before attempting to remove info.txt
+os.makedirs(os.path.dirname(INFO_FILE_PATH), exist_ok=True)
+os.makedirs(AUDIO_FILES_DIR, exist_ok=True)
+os.makedirs(NAV_AUDIO_DIR, exist_ok=True)
+
 if os.path.exists(INFO_FILE_PATH):
-    print("Removing existing info.txt to ensure fresh start...")
-    os.remove(INFO_FILE_PATH)
+    try:
+        print("Removing existing info.txt to ensure fresh start...")
+        os.remove(INFO_FILE_PATH)
+    except PermissionError as e:
+        print(f"Permission denied when removing {INFO_FILE_PATH}: {e}")
+    except Exception as e:
+        print(f"Error removing {INFO_FILE_PATH}: {e}")
 
 sensor = PAJ7620U2()
 # Set global variable for current_task (used by sensor.check_gesture)
@@ -49,10 +59,6 @@ state.sensor = sensor
 play_bootup_sound()
 
 try:
-    os.makedirs(os.path.dirname(INFO_FILE_PATH), exist_ok=True)
-    os.makedirs(AUDIO_FILES_DIR, exist_ok=True)
-    os.makedirs(NAV_AUDIO_DIR, exist_ok=True)
-
     # Start scheduler thread for tasks
     if sensor.tasks:  # Only start scheduler if there are tasks
         scheduler_thread = threading.Thread(target=schedule_tasks, args=(sensor.tasks,))
