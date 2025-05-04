@@ -9,6 +9,9 @@ import schedule
 import subprocess
 from datetime import datetime
 import RPi.GPIO as GPIO
+import logging
+
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 
 # ----------------------------------------------------------------
 # Pre-Initialization: Clear leftover GPIO state and disable warnings
@@ -29,16 +32,18 @@ from ble_pairing import enter_pairing_mode
 import state
 
 print("\nGesture Sensor Test Program ...")
+logging.debug("Starting Gesture Reminder Script")
+
 from config import INFO_FILE_PATH, AUDIO_FILES_DIR, NAV_AUDIO_DIR
 
 # Debug: Print contents of NAV_AUDIO_DIR to verify audio files are present
-print(f"Checking navigation audio directory: {NAV_AUDIO_DIR}")
+logging.debug(f"Checking navigation audio directory: {NAV_AUDIO_DIR}")
 if os.path.exists(NAV_AUDIO_DIR):
-    print("Files in navigation audio directory:")
+    logging.debug("Files in navigation audio directory:")
     for f in os.listdir(NAV_AUDIO_DIR):
-        print("  ", f)
+        logging.debug(f"  {f}")
 else:
-    print("Navigation audio directory does not exist!")
+    logging.warning("Navigation audio directory does not exist!")
 
 # Ensure directories exist before attempting to remove info.txt
 os.makedirs(os.path.dirname(INFO_FILE_PATH), exist_ok=True)
@@ -101,9 +106,14 @@ try:
         time.sleep(1)
 
 except KeyboardInterrupt:
-    print("Exiting program...")
+    logging.info("Exiting program due to KeyboardInterrupt...")
     observer.stop()
+except Exception as e:
+    logging.exception(f"Unhandled exception in main loop: {e}")
+    # Optionally, keep the script alive for debugging:
+    while True:
+        time.sleep(60)
 finally:
     observer.join()
-    print("Cleaning up GPIO")
+    logging.info("Cleaning up GPIO")
     GPIO.cleanup()
