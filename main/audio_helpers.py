@@ -3,12 +3,14 @@
 
 import os
 import subprocess
-from config import NAV_AUDIO_DIR, AUDIO_FILES_DIR  # Add AUDIO_FILES_DIR import
+
+# Always use /home/seniora as the base directory for audio files
+SENIORA_BASE = "/home/seniora/RPI_AI_Gesture_Device/finalv/audio_files"
+NAV_AUDIO_DIR = os.path.join(SENIORA_BASE, "navaudio")
+AUDIO_FILES_DIR = SENIORA_BASE
 
 def play_bootup_sound():
     file_bootup = os.path.join(NAV_AUDIO_DIR, "bootup.mp3")
-    # Fallback path if running as root but files are in /home/seniora
-    fallback_bootup = "/home/seniora/RPI_AI_Gesture_Device/finalv/audio_files/navaudio/bootup.mp3"
     if os.path.exists(file_bootup):
         print("Playing bootup sound...")
         try:
@@ -16,13 +18,6 @@ def play_bootup_sound():
                            capture_output=True, text=True)
         except Exception as e:
             print(f"Error playing bootup sound: {e}")
-    elif os.path.exists(fallback_bootup):
-        print("Playing bootup sound from fallback location...")
-        try:
-            subprocess.run(["ffplay", "-nodisp", "-autoexit", fallback_bootup],
-                           capture_output=True, text=True)
-        except Exception as e:
-            print(f"Error playing bootup sound (fallback): {e}")
     else:
         print("Bootup file not found:", file_bootup)
 
