@@ -10,7 +10,7 @@ def play_bootup_sound():
     if os.path.exists(file_bootup):
         print("Playing bootup sound...")
         try:
-            subprocess.run(["ffplay", "-nodisp", "-autoexit", file_bootup],
+            subprocess.run(["ffplay", "-nodisp", "-autoexit", "-af", "volume=2.0", file_bootup],
                            capture_output=True, text=True)
         except Exception as e:
             print(f"Error playing bootup sound: {e}")
@@ -22,7 +22,7 @@ def play_upload_confirmation():
     if os.path.exists(file_confirm):
         print("Playing upload confirmation sound...")
         try:
-            subprocess.run(["ffplay", "-nodisp", "-autoexit", file_confirm],
+            subprocess.run(["ffplay", "-nodisp", "-autoexit", "-af", "volume=2.0", file_confirm],
                            capture_output=True, text=True)
         except Exception as e:
             print(f"Error playing upload confirmation: {e}")
@@ -36,14 +36,14 @@ def play_task_audio(task_number):
     if os.path.exists(task_file_mp3):
         print(f"Playing task {task_number} (MP3)")
         try:
-            subprocess.run(["ffplay", "-nodisp", "-autoexit", task_file_mp3],
+            subprocess.run(["ffplay", "-nodisp", "-autoexit", "-af", "volume=2.0", task_file_mp3],
                            capture_output=True, text=True)
         except Exception as e:
             print(f"Error playing task {task_number} (MP3): {e}")
     elif os.path.exists(task_file_m4a):
         print(f"Playing task {task_number} (M4A)")
         try:
-            subprocess.run(["ffplay", "-nodisp", "-autoexit", task_file_m4a],
+            subprocess.run(["ffplay", "-nodisp", "-autoexit", "-af", "volume=2.0", task_file_m4a],
                            capture_output=True, text=True)
         except Exception as e:
             print(f"Error playing task {task_number} (M4A): {e}")
@@ -58,21 +58,21 @@ def play_nav_audio(task_number):
     if os.path.exists(nav_file_mp3):
         print(f"Playing navigation audio for task {task_number} (MP3)")
         try:
-            subprocess.run(["ffplay", "-nodisp", "-autoexit", nav_file_mp3],
+            subprocess.run(["ffplay", "-nodisp", "-autoexit", "-af", "volume=2.0", nav_file_mp3],
                            capture_output=True, text=True)
         except Exception as e:
             print(f"Error playing navigation audio: {e}")
     elif os.path.exists(nav_file_m4a):
         print(f"Playing navigation audio for task {task_number} (M4A)")
         try:
-            subprocess.run(["ffplay", "-nodisp", "-autoexit", nav_file_m4a],
+            subprocess.run(["ffplay", "-nodisp", "-autoexit", "-af", "volume=2.0", nav_file_m4a],
                            capture_output=True, text=True)
         except Exception as e:
             print(f"Error playing navigation audio: {e}")
     elif os.path.exists(generic_nav_file):
         print(f"Playing generic navigation audio for task {task_number}")
         try:
-            subprocess.run(["ffplay", "-nodisp", "-autoexit", generic_nav_file],
+            subprocess.run(["ffplay", "-nodisp", "-autoexit", "-af", "volume=2.0", generic_nav_file],
                            capture_output=True, text=True)
         except Exception as e:
             print(f"Error playing generic navigation audio: {e}")
@@ -84,7 +84,7 @@ def play_pairing_confirmation():
     if os.path.exists(pairing_file):
         print("Playing pairing confirmation sound...")
         try:
-            subprocess.run(["ffplay", "-nodisp", "-autoexit", pairing_file],
+            subprocess.run(["ffplay", "-nodisp", "-autoexit", "-af", "volume=2.0", pairing_file],
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except Exception as e:
             print(f"Error playing pairing confirmation: {e}")
